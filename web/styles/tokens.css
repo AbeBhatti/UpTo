@@ -1,0 +1,112 @@
+/**
+ * tokens.css — the UpTo brand values, hand-trimmed for the MVP.
+ *
+ * These are Up-To Social's own brand values: the crimson, the near-black
+ * surfaces, the category accents, the spacing scale and the type ramp. They
+ * are the palette, not a design system — there is no component CSS here, no
+ * layout, no utilities. Everything the MVP looks like gets BUILT against
+ * these variables rather than inherited.
+ *
+ * Rule for both frontend tracks: no raw hex values and no magic pixel
+ * numbers anywhere in a component. If there is no token for it, the design
+ * did not have it — ask rather than inventing one.
+ *
+ * Font: Figtree, OFL licensed, free from Google Fonts. Crimson Pro is only
+ * used for one ornament in the real app and is skipped here.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* --- Brand ----------------------------------------------------------- */
+  --up-primary: #a32035;
+  --up-on-primary: #ffffff;
+  --up-primary-text: #f07589; /* crimson is too dark to read on near-black */
+  --up-primary-ring: #a3203521;
+
+  /* --- Surfaces (dark) ------------------------------------------------- */
+  --up-surface: #080b0d; /* page background */
+  --up-surface-sheet: #15181b; /* modals, panels */
+  --up-surface-subtle: #131619; /* cards on the page */
+  --up-surface-inset: #1f2428; /* inputs, wells */
+  --up-surface-icon-tile: #1a1e22; /* the square behind a rail icon */
+  --up-surface-field-empty: #101417;
+  --up-surface-map: #14181b;
+
+  /* --- Text and lines -------------------------------------------------- */
+  --up-text: #f3f5f6;
+  --up-text-secondary: #9aa4ab;
+  --up-text-tertiary: #6b757c;
+  --up-border: #272c31;
+  --up-border-strong: #394147;
+
+  /* --- Status ---------------------------------------------------------- */
+  --up-live: #ffffff; /* the NOW badge */
+  --up-status-open-text: #b7d78d;
+  --up-status-closed-text: var(--up-primary-text);
+  --up-danger: var(--up-primary-text);
+
+  /* --- Category accents (drive chips and pins) ------------------------- */
+  --up-cat-food-accent: #a32035;
+  --up-cat-clubs-accent: #2b438f;
+  --up-cat-trips-accent: #27540c;
+  --up-cat-tabling-accent: #425766;
+  --up-cat-career-accent: #115d6f;
+  --up-cat-study-accent: #633573;
+  --up-cat-reslife-accent: #a32035;
+  --up-cat-sports-accent: #115d6f;
+  --up-cat-volunteer-accent: #27540c;
+  --up-cat-speakers-accent: #633573;
+  --up-cat-invite-accent: #425766;
+
+  /* --- Spacing --------------------------------------------------------- */
+  --up-space-s4: 4px;
+  --up-space-s8: 8px;
+  --up-space-s12: 12px;
+  --up-space-s16: 16px;
+  --up-space-s24: 24px;
+  --up-space-s32: 32px;
+  --up-space-gutter: 24px;
+  --up-space-section-gap: 32px;
+  --up-space-row-padding: 16px;
+
+  /* --- Radii ----------------------------------------------------------- */
+  --up-radius-pill: 99px;
+  --up-radius-card-hero: 24px;
+  --up-radius-card-float: 20px;
+  --up-radius-card: 16px;
+  --up-radius-control: 15px;
+  --up-radius-tile-sm: 11px;
+  --up-radius-compact: 8px;
+
+  /* --- Sizes ----------------------------------------------------------- */
+  --up-size-tap-target: 44px;
+  --up-size-icon-button: 34px;
+  --up-size-icon-tile: 34px;
+  --up-size-avatar-header: 44px;
+  --up-size-cta: 52px;
+  --up-size-time-tile-home: 46px;
+  --up-size-time-tile-discover: 58px;
+  --up-size-readable-width: 700px;
+  --up-stroke-hairline: 1px;
+
+  /* --- Type ------------------------------------------------------------ */
+  --up-font-sans: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --up-type-display-hero-size: 2.125rem; /* "Sunday, November 15" */
+  --up-type-display-hero-weight: 700;
+  --up-type-display-hero-tracking: -0.04em;
+
+  --up-type-title1-size: 1.625rem; /* "Right Now", "Discover" */
+  --up-type-title1-weight: 700;
+  --up-type-title1-tracking: -0.03em;
+
+  --up-type-headline-size: 1rem; /* event titles */
+  --up-type-headline-weight: 600;
+
+  --up-type-body-size: 0.875rem; /* locations, descriptions */
+  --up-type-body-weight: 400;
+
+  --up-type-footnote-size: 0.75rem; /* time labels, sign-up state */
+  --up-type-footnote-weight: 500;
+}

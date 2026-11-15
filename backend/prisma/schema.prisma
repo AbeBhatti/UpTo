@@ -1,0 +1,495 @@
+// UpTo MVP — Prisma schema
+//
+// Every model below maps to a class in the Lab 4 class diagram, except the
+// four verification models at the bottom, which exist because Lab 6 requires
+// them. Nothing here is speculative: if a field is present, something in a
+// lab document or the API contract needs it.
+//
+// FROZEN FILE. Abhi and Abe own it jointly after commit 1. Any change is
+// announced in the group chat, merged to main within the hour, and everyone
+// rebases the same day.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Lab 5, Attendance: "each of the three statuses is accepted".
+enum AttendanceStatus {
+  GOING
+  INTERESTED
+  NOT_GOING
+}
+
+/// Lab 5, Drop: "Pick Free Food, Pop-Up or Random."
+enum DropCategory {
+  FREE_FOOD
+  POP_UP
+  RANDOM
+}
+
+/// Lab 5, Drop: "votes: HERE and GONE count, null withdraws a vote".
+/// Withdrawal is modelled as deleting the DropVote row.
+enum DropVoteKind {
+  HERE
+  GONE
+}
+
+/// Lab 5, Drop + UpTo + chat: "reason must be an exact value".
+enum ReportReason {
+  ABOUT_A_PERSON
+  THREAT
+  HATE
+  SEXUAL
+  SPAM
+  OTHER
+}
+
+/// Single-table inheritance discriminator for the abstract Report class.
+/// The class diagram's DropReport and UpToReport are narrowed in
+/// packages/contracts, not split into separate tables.
+enum ReportTarget {
+  DROP
+  UPTO
+  MESSAGE
+}
+
+enum RoomType {
+  DIRECT
+  GROUP
+}
+
+enum EventSourceType {
+  LIVEWHALE
+  FLYER
+  MANUAL
+}
+
+// ---------------------------------------------------------------------------
+// User  (Lab 4: User)
+// ---------------------------------------------------------------------------
+
+model User {
+  id       String  @id @default(cuid())
+  /// Lab 5: 3 to 30 characters.
+  username String  @unique @db.VarChar(30)
+  name     String  @db.VarChar(80)
+  /// Lab 5: "the email is stored in lowercase"; either email or phone is required.
+  email    String? @unique @db.VarChar(254)
+  phone    String? @unique @db.VarChar(20)
+  /// Null for Google-only accounts. Lab 5: minimum 6 characters before hashing.
+  passwordHash String?
+  googleId     String? @unique
+  /// Lab 5: "a 65-character avatar seed is too long".
+  avatarSeed   String? @db.VarChar(64)
+  avatarUrl    String?
+
+  /// Lab 4: User.isVerifiedStudent. Set only by confirmVerification.
+  isVerifiedStudent Boolean   @default(false)
+  /// The proven SCU mailbox. Unique: two accounts cannot hold one address,
+  /// which is what produces the 409 campus_email_in_use path in Lab 6.
+  campusEmail       String?   @unique @db.VarChar(254)
+  campusVerifiedAt  DateTime?
+  /// Lab 6: range-checked, producing 422 class_of_out_of_range.
+  classOf           Int?
+
+  isAdmin   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attendances   Attendance[]
+  uptos         UpTo[]
+  drops         Drop[]
+  dropVotes     DropVote[]
+  reports       Report[]
+  roomMembers   RoomMember[]
+  messages      Message[]
+  pollResponses PollResponse[]
+  notifications Notification[]
+  challenge     CampusVerificationChallenge?
+  handoffsFrom  AccountHandoff[]             @relation("HandoffFrom")
+  handoffsTo    AccountHandoff[]             @relation("HandoffTo")
+
+  @@index([campusEmail])
+}
+
+// ---------------------------------------------------------------------------
+// Events  (Lab 4: CampusEvent, Attendance, EventSource)
+// ---------------------------------------------------------------------------
+
+/// Lab 4: EventSource "type, url", 1..* imported into CampusEvent.
+model EventSource {
+  id        String          @id @default(cuid())
+  type      EventSourceType
+  url       String
+  label     String          @db.VarChar(80)
+  lastRunAt DateTime?
+  createdAt DateTime        @default(now())
+
+  events CampusEvent[]
+}
+
+model CampusEvent {
+  id       String    @id @default(cuid())
+  title    String    @db.VarChar(200)
+  /// Cleaned the same way an UpTo description is. Max 2,000 characters.
+  description String? @db.VarChar(2000)
+  startsAt DateTime
+  endsAt   DateTime?
+  location String    @db.VarChar(200)
+  lat      Float?
+  lng      Float?
+  /// Free text shown as a chip, e.g. "Global Engagement".
+  organizer String? @db.VarChar(120)
+  /// One of the design category keys: food, clubs, trips, career, study, sports...
+  category  String? @db.VarChar(24)
+
+  /// Lab 4: CampusEvent.goingCount. Denormalised; recomputed on RSVP.
+  goingCount   Int          @default(0)
+  /// Lab 4: CampusEvent.approve() moves this to APPROVED.
+  reviewStatus ReviewStatus @default(PENDING)
+
+  /// Lab 5, Attendance/sign-up: the three-field signup object.
+  /// All three null means no sign-up is required.
+  signupUrl      String?
+  signupOpensAt  DateTime?
+  signupClosesAt DateTime?
+
+  sourceId String?
+  source   EventSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  /// Stable id from the upstream feed, so a re-import updates rather than duplicates.
+  externalId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attendances Attendance[]
+
+  @@unique([sourceId, externalId])
+  @@index([startsAt])
+  @@index([reviewStatus, startsAt])
+}
+
+/// Lab 4: Attendance "status", setStatus(status). One row per user per event.
+model Attendance {
+  id            String           @id @default(cuid())
+  userId        String
+  campusEventId String
+  status        AttendanceStatus
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event CampusEvent @relation(fields: [campusEventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, campusEventId])
+  @@index([campusEventId, status])
+}
+
+// ---------------------------------------------------------------------------
+// UpTo and Poll  (Lab 4: UpTo, Poll)
+// ---------------------------------------------------------------------------
+
+model UpTo {
+  id          String    @id @default(cuid())
+  creatorId   String
+  title       String    @db.VarChar(200)
+  /// Lab 5: cleaned, then max 2,000 characters. Null means "no description".
+  description String?   @db.VarChar(2000)
+  scheduledAt DateTime
+  location    String    @db.VarChar(200)
+  lat         Float?
+  lng         Float?
+  /// Lab 4: UpTo.shareLink() resolves to /u/{shareSlug}.
+  shareSlug   String    @unique @db.VarChar(24)
+  /// Lab 4: UpTo.publish().
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator User      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  poll    Poll?
+  rsvps   UpToRsvp[]
+  reports Report[]
+
+  @@index([scheduledAt])
+}
+
+/// Not in the class diagram as its own class, but the diagram's UpTo carries
+/// RSVPs and Lab 5 tests "GOING with anonymity accepted".
+model UpToRsvp {
+  id        String   @id @default(cuid())
+  upToId    String
+  userId    String
+  anonymous Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  upTo UpTo @relation(fields: [upToId], references: [id], onDelete: Cascade)
+
+  @@unique([upToId, userId])
+}
+
+/// Lab 4: Poll "question", vote(user, option). 0..1 per UpTo.
+model Poll {
+  id       String   @id @default(cuid())
+  upToId   String   @unique
+  /// Lab 5: trimmed, 1 to 280 characters.
+  question String   @db.VarChar(280)
+  createdAt DateTime @default(now())
+
+  upTo  UpTo       @relation(fields: [upToId], references: [id], onDelete: Cascade)
+  slots PollSlot[]
+}
+
+/// Lab 5: 2 to 20 slots, label max 120, order is a non-negative integer.
+model PollSlot {
+  id     String @id @default(cuid())
+  pollId String
+  label  String @db.VarChar(120)
+  order  Int
+
+  poll      Poll           @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  responses PollResponse[]
+
+  @@index([pollId, order])
+}
+
+model PollResponse {
+  id        String   @id @default(cuid())
+  slotId    String
+  userId    String
+  available Boolean
+  createdAt DateTime @default(now())
+
+  slot PollSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  user User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([slotId, userId])
+}
+
+// ---------------------------------------------------------------------------
+// Drops  (Lab 4: Drop)
+// ---------------------------------------------------------------------------
+
+model Drop {
+  id       String       @id @default(cuid())
+  authorId String
+  category DropCategory
+  /// Lab 5: normalised, then 3 to 80 GRAPHEMES. The column is wider than 80
+  /// because one grapheme can be several UTF-8 characters.
+  text     String       @db.VarChar(320)
+  lat      Float
+  lng      Float
+  /// Lab 4: Drop.isActive() is expiresAt > now().
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+
+  /// Idempotency key from the client, 8 to 64 of [A-Za-z0-9_-].
+  clientRef String? @db.VarChar(64)
+
+  author  User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  votes   DropVote[]
+  reports Report[]
+
+  @@unique([authorId, clientRef])
+  @@index([expiresAt])
+}
+
+model DropVote {
+  id        String       @id @default(cuid())
+  dropId    String
+  userId    String
+  kind      DropVoteKind
+  createdAt DateTime     @default(now())
+
+  drop Drop @relation(fields: [dropId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([dropId, userId])
+}
+
+/// Lab 5: "rules agreement: versions 1 to 2 only, whole numbers only".
+model DropRulesAgreement {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  rulesVersion Int
+  agreedAt     DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Report  (Lab 4: abstract Report, with DropReport and UpToReport)
+// ---------------------------------------------------------------------------
+
+/// Single-table inheritance. targetType is the discriminator and exactly one
+/// target id is set — enforced by a check constraint added in the migration:
+///
+///   ALTER TABLE "Report" ADD CONSTRAINT report_one_target CHECK (
+///     (("dropId" IS NOT NULL)::int + ("upToId" IS NOT NULL)::int
+///      + ("messageId" IS NOT NULL)::int) = 1);
+///
+/// packages/contracts narrows this into DropReport and UpToReport types so the
+/// class diagram's subclasses are still distinct in application code.
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  targetType ReportTarget
+  reason     ReportReason
+  /// Lab 5: max 500 characters.
+  details    String?      @db.VarChar(500)
+  createdAt  DateTime     @default(now())
+  resolvedAt DateTime?
+
+  dropId    String?
+  upToId    String?
+  messageId String?
+
+  reporter User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  drop     Drop?    @relation(fields: [dropId], references: [id], onDelete: Cascade)
+  upTo     UpTo?    @relation(fields: [upToId], references: [id], onDelete: Cascade)
+  message  Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([targetType, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Chat  (Lab 4: Room, Message)
+// ---------------------------------------------------------------------------
+
+model Room {
+  id   String   @id @default(cuid())
+  type RoomType
+  /// Lab 5: 1 to 80 characters, trimmed, no line breaks. Null for DIRECT rooms.
+  name String?  @db.VarChar(80)
+  createdAt DateTime @default(now())
+
+  members  RoomMember[]
+  messages Message[]
+}
+
+model RoomMember {
+  id     String @id @default(cuid())
+  roomId String
+  userId String
+  /// Lab 5: "null unmutes, an ISO time mutes".
+  mutedUntil DateTime?
+  joinedAt   DateTime  @default(now())
+  lastReadAt DateTime?
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+}
+
+/// Lab 4: Message "content, createdAt"; Room.sendText(text) returns one.
+model Message {
+  id       String   @id @default(cuid())
+  roomId   String
+  senderId String
+  content  String   @db.VarChar(4000)
+  /// Lab 5: "message revision: 0 and 50 pass; -1, 51 and 2.5 fail".
+  revision Int      @default(0)
+  createdAt DateTime @default(now())
+
+  room    Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender  User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  reports Report[]
+
+  @@index([roomId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Verification  (Lab 6)
+// ---------------------------------------------------------------------------
+
+/// One row per ACCOUNT. The attempt budget lives here, not on the code, which
+/// is what makes the five wrong guesses SHARED across up to three live codes.
+/// Getting this wrong makes Lab 6 impossible to implement as written.
+model CampusVerificationChallenge {
+  id     String @id @default(cuid())
+  userId String @unique
+  /// The address being proven. A send to a DIFFERENT address kills the old codes.
+  email  String @db.VarChar(254)
+  /// Shared budget. MAX_ATTEMPTS = 5.
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  /// Backs the hourly send limit.
+  lastSentAt DateTime?
+  sendCount  Int       @default(0)
+
+  user  User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codes CampusVerificationCode[]
+}
+
+/// Up to MAX_LIVE_CODES = 3 per challenge. A fourth send drops the oldest.
+/// Codes are bcrypt-hashed and never stored in the clear.
+model CampusVerificationCode {
+  id          String   @id @default(cuid())
+  challengeId String
+  codeHash    String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  challenge CampusVerificationChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@index([challengeId, createdAt])
+}
+
+/// Lab 6, node N9: proves that one code can produce only ONE handoff, which is
+/// the race the R9b return guards.
+model AccountHandoff {
+  id           String   @id @default(cuid())
+  /// The account that proved the address and is being offered the switch.
+  fromUserId   String
+  /// The account that already holds the address.
+  toUserId     String
+  email        String   @db.VarChar(254)
+  tokenHash    String   @unique
+  /// Bound to the device that earned it.
+  deviceId     String
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  fromUser User @relation("HandoffFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("HandoffTo", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications  (Lab 4: Push Notifications, delivered in-app)
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  kind      String   @db.VarChar(40)
+  title     String   @db.VarChar(200)
+  body      String?  @db.VarChar(500)
+  /// Deep link into the app, e.g. /events/abc123.
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

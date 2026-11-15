@@ -1,0 +1,42 @@
+@import '../styles/tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--up-surface);
+  color: var(--up-text);
+  font-family: var(--up-font-sans);
+}
+
+:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+}
+
+.placeholder-page {
+  padding: var(--up-space-gutter);
+}
+
+.placeholder-page h1 {
+  margin: 0 0 var(--up-space-s8);
+  font-size: var(--up-type-title1-size);
+  font-weight: var(--up-type-title1-weight);
+  letter-spacing: var(--up-type-title1-tracking);
+}
+
+.placeholder-page p {
+  margin: 0;
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-body-size);
+  font-weight: var(--up-type-body-weight);
+}

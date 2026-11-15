@@ -1,0 +1,10 @@
+{
+  "name": "@upto/fixtures",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "events.ts",
+  "types": "events.ts",
+  "exports": { ".": "./events.ts" },
+  "dependencies": { "@upto/contracts": "*" }
+}
