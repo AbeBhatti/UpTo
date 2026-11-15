@@ -1,0 +1,82 @@
+.codeInput {
+  width: 100%;
+  min-height: var(--up-size-cta);
+  padding: var(--up-space-s12) var(--up-space-s16);
+  background: var(--up-surface-inset);
+  color: var(--up-text);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-control);
+  font-family: var(--up-font-sans);
+  font-size: var(--up-type-display-hero-size);
+  font-weight: var(--up-type-display-hero-weight);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--up-space-s12);
+  text-align: center;
+  outline: none;
+}
+
+.codeInput::placeholder {
+  color: var(--up-text-tertiary);
+}
+
+.codeInput:focus-visible {
+  border-color: var(--up-primary);
+  box-shadow: 0 0 0 var(--up-space-s4) var(--up-primary-ring);
+}
+
+.codeInput[aria-invalid="true"] {
+  border-color: var(--up-primary-text);
+}
+
+.codeInput:disabled {
+  color: var(--up-text-tertiary);
+  background: var(--up-surface-field-empty);
+}
+
+.resendRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--up-space-s8);
+  font-size: var(--up-type-footnote-size);
+  color: var(--up-text-tertiary);
+}
+
+.address {
+  color: var(--up-text);
+  font-weight: var(--up-type-headline-weight);
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: var(--up-space-s12);
+  padding: var(--up-space-s12) var(--up-space-s16);
+  background: var(--up-surface-subtle);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-card);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: var(--up-size-avatar-header);
+  block-size: var(--up-size-avatar-header);
+  border-radius: var(--up-radius-pill);
+  background: var(--up-surface-icon-tile);
+  color: var(--up-text);
+  font-weight: var(--up-type-headline-weight);
+}
+
+.personName {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--up-type-body-size);
+}
+
+.personHandle {
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-footnote-size);
+}
