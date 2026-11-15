@@ -93,6 +93,14 @@ export const createUpToSchema = z
         .trim()
         .min(1, { error: "location must be 1 to 200 characters" })
         .max(200, { error: "location must be 1 to 200 characters" }),
+      contact: z
+        .string({ error: "contact must be a string" })
+        .trim()
+        .max(254, { error: "contact must be at most 254 characters" })
+        .refine((value) => classifyContact(value) !== null, {
+          error: "contact must be an email address or a phone number of 7 to 15 digits",
+        })
+        .optional(),
       lat: latitude.optional(),
       lng: longitude.optional(),
       publish: z.boolean({ error: "publish must be true or false" }).optional(),

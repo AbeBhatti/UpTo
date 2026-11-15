@@ -120,6 +120,8 @@ model User {
   messages      Message[]
   pollResponses PollResponse[]
   notifications Notification[]
+  upToRsvps     UpToRsvp[]
+  rulesAgreement DropRulesAgreement?
   challenge     CampusVerificationChallenge?
   handoffsFrom  AccountHandoff[]             @relation("HandoffFrom")
   handoffsTo    AccountHandoff[]             @relation("HandoffTo")
@@ -216,6 +218,9 @@ model UpTo {
   lng         Float?
   /// Lab 4: UpTo.shareLink() resolves to /u/{shareSlug}.
   shareSlug   String    @unique @db.VarChar(24)
+  /// Lab 5: shown on the public share page and checked by classifyContact,
+  /// which accepts an email or a phone of 7 to 15 digits. Null means none.
+  contact     String?   @db.VarChar(254)
   /// Lab 4: UpTo.publish().
   published   Boolean   @default(false)
   publishedAt DateTime?
@@ -241,6 +246,7 @@ model UpToRsvp {
   createdAt DateTime @default(now())
 
   upTo UpTo @relation(fields: [upToId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([upToId, userId])
 }
@@ -291,9 +297,12 @@ model Drop {
   id       String       @id @default(cuid())
   authorId String
   category DropCategory
-  /// Lab 5: normalised, then 3 to 80 GRAPHEMES. The column is wider than 80
-  /// because one grapheme can be several UTF-8 characters.
-  text     String       @db.VarChar(320)
+  /// Lab 5: normalised, then 3 to 80 GRAPHEMES. That limit is enforced in
+  /// drops.validator.ts. The column is Text, not VarChar(n), because Postgres
+  /// counts code points: 80 family emoji are about 560 of them, so any VarChar
+  /// would impose a second, stricter limit in a different unit and fail an
+  /// insert the validator has already accepted.
+  text     String       @db.Text
   lat      Float
   lng      Float
   /// Lab 4: Drop.isActive() is expiresAt > now().
@@ -330,6 +339,8 @@ model DropRulesAgreement {
   userId       String   @unique
   rulesVersion Int
   agreedAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------------------------------------------------------------
