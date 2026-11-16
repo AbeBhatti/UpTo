@@ -2,7 +2,7 @@ import type { CampusEvent } from '@upto/contracts';
 import styles from './TimeTile.module.css';
 
 interface TimeTileProps {
-  event: Pick<CampusEvent, 'timeLabel'>;
+  event: Pick<CampusEvent, 'timeLabel' | 'isLiveNow'>;
   /** A card puts the time on one line above its title. */
   inline?: boolean;
   /** Discover rows get the wider time column without changing Home. */
@@ -24,12 +24,27 @@ export function splitTimeLabel(label: string): [string, string] {
   return [label, ''];
 }
 
+/**
+ * A live event (the server's isLiveNow) gets a NOW badge above the server's
+ * own timeLabel ("NOW" / "2 hrs left"), on Home and Discover alike. Neither
+ * page invents a label: the badge says live, the label says for how long.
+ */
 export function TimeTile({ event, inline = false, discover = false }: TimeTileProps) {
   const tileClass = `${styles.tile} ${discover ? styles.discover : ''}`;
-  if (inline) return <span className={`${tileClass} ${styles.inline}`}>{event.timeLabel}</span>;
+  const badge = event.isLiveNow ? <span className={styles.now}>NOW</span> : null;
+  if (inline) {
+    return (
+      <span className={`${tileClass} ${styles.inline}`}>
+        {badge}
+        {badge ? ' · ' : null}
+        {event.timeLabel}
+      </span>
+    );
+  }
   const [top, bottom] = splitTimeLabel(event.timeLabel);
   return (
     <span className={tileClass}>
+      {badge}
       <span className={styles.line}>{top}</span>
       {bottom ? <span className={styles.line}>{bottom}</span> : null}
     </span>
