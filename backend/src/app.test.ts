@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { after, before, test } from "node:test";
+import { after, before, mock, test } from "node:test";
 import { ROUTES } from "@upto/contracts";
 import { createApp } from "./app.js";
 import type { AppDeps } from "./deps.js";
@@ -95,4 +95,41 @@ test("unknown paths return the not found envelope", async () => {
     ok: false,
     error: { code: "not_found", message: "Route not found" },
   });
+});
+
+test("a 500 is logged with the method, path, route and stack, with database passwords hidden", async () => {
+  const failingDb = new Proxy({}, {
+    get: () => new Proxy({}, {
+      get: () => async () => {
+        throw new Error("Can't reach database at postgresql://postgres.ref:hunter2@db.example.com:5432/postgres");
+      },
+    }),
+  });
+  const failing = createApp({
+    ...fakeDeps,
+    events: { db: failingDb, now, currentUserId: () => null },
+  } as unknown as AppDeps);
+  const failingServer = createServer(failing);
+  await new Promise<void>((resolve) => failingServer.listen(0, "127.0.0.1", resolve));
+  const address = failingServer.address();
+  assert.ok(address && typeof address !== "string");
+  const logged = mock.method(console, "error", () => undefined);
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/events?when=now`);
+    assert.equal(response.status, 500);
+    assert.deepEqual(await response.json(), {
+      ok: false,
+      error: { code: "server_error", message: "Internal server error" },
+    });
+    assert.equal(logged.mock.callCount(), 1);
+    const line = String(logged.mock.calls[0]!.arguments[0]);
+    assert.match(line, /^\[500\] GET \/events\?when=now \(route \/events\)/);
+    assert.match(line, /Can't reach database/);
+    assert.match(line, /\n\s+at /, "includes the stack");
+    assert.ok(!line.includes("hunter2"), "the password is redacted");
+    assert.match(line, /postgres\.ref:\*\*\*@db\.example\.com/);
+  } finally {
+    logged.mock.restore();
+    await new Promise<void>((resolve) => failingServer.close(() => resolve()));
+  }
 });

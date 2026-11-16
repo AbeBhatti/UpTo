@@ -9,6 +9,9 @@ import styles from './discover.module.css';
 
 type ShowFilter = NonNullable<ListEventsQuery['filter']>;
 
+/** A server window, or 'upcoming': no window, so every live and upcoming event. */
+export type DiscoverWhen = EventWindow | 'upcoming';
+
 interface DiscoverViewProps {
   events: CampusEvent[];
   now: string;
@@ -16,12 +19,13 @@ interface DiscoverViewProps {
   total: number;
   nextCursor: string | null;
   error: string;
-  when: EventWindow;
+  when: DiscoverWhen;
   filter: ShowFilter;
   initialEventId: string;
 }
 
-const WINDOW_OPTIONS: { value: EventWindow; label: string }[] = [
+const WINDOW_OPTIONS: { value: DiscoverWhen; label: string }[] = [
+  { value: 'upcoming', label: 'Upcoming' },
   { value: 'now', label: 'Now' },
   { value: 'today', label: 'Today' },
   { value: 'week', label: 'This week' },
@@ -84,8 +88,13 @@ function detailDate(value: string) {
   }).format(new Date(value));
 }
 
-function queryHref(when: EventWindow, filter: ShowFilter, eventId?: string) {
-  const query = new URLSearchParams({ when, show: filter });
+/** "1 event", "6 events". */
+function eventCount(count: number) {
+  return `${count} ${count === 1 ? 'event' : 'events'}`;
+}
+
+function queryHref(when: DiscoverWhen, filter: ShowFilter, eventId?: string) {
+  const query = new URLSearchParams(when === 'upcoming' ? { show: filter } : { when, show: filter });
   if (eventId) query.set('event', eventId);
   return `/discover?${query.toString()}`;
 }
@@ -142,7 +151,7 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
     router.push(queryHref(when, filter, event.id), { scroll: false });
   }
 
-  function changeFilters(nextWhen: EventWindow, nextFilter: ShowFilter) {
+  function changeFilters(nextWhen: DiscoverWhen, nextFilter: ShowFilter) {
     setMobileDetailOpen(false);
     setError('');
     startTransition(() => router.push(queryHref(nextWhen, nextFilter), { scroll: false }));
@@ -158,12 +167,12 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
     setLoadingMore(true);
     setError('');
     try {
-      const page = await getDiscoverData({ when, filter, limit: 50 }, { cursor: nextCursor });
+      const page = await getDiscoverData({ when: when === 'upcoming' ? undefined : when, filter, limit: 50 }, { cursor: nextCursor });
       setEvents((current) => [...current, ...page.events]);
       setNextCursor(page.nextCursor);
       setNow(page.now);
       setCounts(page.counts);
-      setTotal(page.counts.all ?? 0);
+      setTotal(page.counts[filter] ?? 0);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not load events.');
     } finally {
@@ -176,7 +185,7 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
     startTransition(() => router.refresh());
   }
 
-  const summary = `${WINDOW_OPTIONS.find((item) => item.value === when)?.label ?? 'This quarter'} · ${total} events`;
+  const summary = `${WINDOW_OPTIONS.find((item) => item.value === when)?.label ?? 'Upcoming'} · ${eventCount(total)}`;
   const directionsUrl = selectedEvent
     ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
       selectedEvent.lat !== null && selectedEvent.lng !== null
@@ -219,7 +228,7 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
                   onChange={() => changeFilters(when, option.value)}
                 />
                 <span>{option.label}</span>
-                <span className={styles.count}>{counts[option.value] ?? 0} events</span>
+                <span className={styles.count}>{eventCount(counts[option.value] ?? 0)}</span>
               </label>
             ))}
           </div>
@@ -242,7 +251,7 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
                     <span>{group.lead}</span>
                     {group.weekday ? <span className={styles.weekday}>{group.weekday}</span> : null}
                   </div>
-                  <span className={styles.dayCount}>{group.events.length} events</span>
+                  <span className={styles.dayCount}>{eventCount(group.events.length)}</span>
                 </div>
                 <div className={styles.eventList}>
                   {group.events.map((event) => {

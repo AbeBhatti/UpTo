@@ -26,3 +26,31 @@
   outline: var(--up-stroke-hairline) solid var(--up-primary-text);
   outline-offset: var(--up-space-s4);
 }
+
+.button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* Holds the button and, on failure, a message under it without moving the row. */
+.wrap {
+  position: relative;
+  display: inline-grid;
+  flex: 0 0 var(--up-size-tap-target);
+}
+
+.error {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 1;
+  width: max-content;
+  max-width: var(--up-size-readable-width);
+  margin-top: var(--up-space-s4);
+  padding: var(--up-space-s4) var(--up-space-s8);
+  border-radius: var(--up-radius-compact);
+  background: var(--up-surface-sheet);
+  color: var(--up-danger);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-footnote-weight);
+}

@@ -18,7 +18,19 @@ if (!process.env.DATABASE_URL) {
 
 const port = Number(process.env.PORT ?? 4000);
 const app = createApp();
-const server = app.listen(port, () => {
+// Express 5 calls this once, with the error if the server could not listen
+// (port in use, no permission). Ignoring it printed "listening" and exited 0.
+const server = app.listen(port, (error?: Error) => {
+  if (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    console.error(
+      code === "EADDRINUSE"
+        ? `Port ${port} is already in use. Stop whatever is on it, or set PORT to a free one.`
+        : `Backend could not listen on port ${port}: ${error.message}`,
+    );
+    process.exitCode = 1;
+    return;
+  }
   console.log(`Backend listening at http://localhost:${port}`);
 });
 

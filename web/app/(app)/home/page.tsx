@@ -1,4 +1,5 @@
 import type { CampusEvent } from '@upto/contracts';
+import { headers } from 'next/headers';
 import { getHomeData } from '@/lib/events';
 import { EventRow, JoinButton, SectionHeader, SignupBadge, TimeTile } from '@/components';
 import styles from './home.module.css';
@@ -40,18 +41,6 @@ function dateHeadline(value: string) {
   }).format(new Date(value));
 }
 
-function localWeekday(value: string) {
-  return new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, weekday: 'short' }).format(new Date(value));
-}
-
-function dayOrdinal(value: string) {
-  return Date.parse(`${pacificDateKey(value)}T00:00:00Z`) / (24 * 60 * 60 * 1000);
-}
-
-function sortByStart(a: CampusEvent, b: CampusEvent) {
-  return Date.parse(a.startsAt) - Date.parse(b.startsAt);
-}
-
 function CampusIcon({ name }: { name: string }) {
   const paths: Record<string, React.ReactNode> = {
     dining: <><path d="M5 3v7" /><path d="M8 3v7" /><path d="M5 7h3" /><path d="M6.5 10v11" /><path d="M17 3v18" /><path d="M17 3c3 2 3 6 0 8" /></>,
@@ -78,27 +67,34 @@ function LaterCard({ event }: { event: CampusEvent }) {
 }
 
 export default async function HomePage() {
-  const { events, now, campusRail } = await getHomeData();
-  const todayKey = pacificDateKey(now);
-  const todayWeekday = localWeekday(now);
-  const weekdayIndex = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(todayWeekday);
-  const daysLeftInWeek = 6 - weekdayIndex;
-  const approved = events.filter((event) => event.reviewStatus === 'APPROVED');
-
-  // Home follows the contract's event windows: isLiveNow defines Right Now;
-  // the remaining approved events are separated by Pacific calendar date,
-  // and This week includes later days in the current Sunday-to-Saturday week.
-  const rightNow = approved.filter((event) => event.isLiveNow).sort(sortByStart);
-  const laterToday = approved
-    .filter((event) => !event.isLiveNow && pacificDateKey(event.startsAt) === todayKey && Date.parse(event.startsAt) > Date.parse(now))
-    .sort(sortByStart);
-  const thisWeek = approved
-    .filter((event) => {
-      if (event.isLiveNow) return false;
-      const daysAhead = dayOrdinal(event.startsAt) - dayOrdinal(now);
-      return daysAhead > 0 && daysAhead <= daysLeftInWeek;
-    })
-    .sort(sortByStart);
+  // Reading the request makes Home render per request, as Discover does,
+  // instead of a build-time snapshot; the cookie carries the viewer's session.
+  const requestHeaders = await headers();
+  // Each section is one of the server's event windows (now, today, week), the
+  // same ones Discover's WHEN rail uses, in the server's order.
+  let data: Awaited<ReturnType<typeof getHomeData>>;
+  try {
+    data = await getHomeData({ cookie: requestHeaders.get('cookie') ?? undefined });
+  } catch (caught) {
+    // As Discover does: say what went wrong instead of a server error page.
+    const message = caught instanceof Error ? caught.message : 'Could not load events.';
+    const today = new Date().toISOString();
+    return (
+      <div className={styles.page}>
+        <div className={styles.content}>
+          <header className={styles.pageHeader}>
+            <p className={styles.quarter}>Week {weekNumber(today)} · Fall Quarter</p>
+            <h1>{dateHeadline(today)}</h1>
+          </header>
+          <div className={styles.error} role="alert">
+            <span>{message}</span>
+            <a href="/home">Try again</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const { rightNow, laterToday, thisWeek, now, campusRail } = data;
 
   const leftWeek = thisWeek.filter((_, index) => index % 2 === 0);
   const rightWeek = thisWeek.filter((_, index) => index % 2 === 1);
