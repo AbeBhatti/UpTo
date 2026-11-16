@@ -3,10 +3,14 @@
 import type { FormEvent } from "react";
 import { Banner, Button, Field, Panel, formStyles as s } from "../../create/_shared/form";
 
-/** The academic year that ends next June, e.g. Fall 2026 → 2027. */
+/**
+ * Same range as Abe's `classOfRange` (backend/src/services/verification/codes.ts):
+ * from the class graduating next June through five years after it, in UTC.
+ * Fall 2026 → 2027–2032. The server still has the final say (422 class_of_out_of_range).
+ */
 function classYearOptions(now = new Date()) {
-  const first = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
-  return Array.from({ length: 5 }, (_, i) => first + i);
+  const first = now.getUTCMonth() >= 6 ? now.getUTCFullYear() + 1 : now.getUTCFullYear();
+  return Array.from({ length: 6 }, (_, i) => first + i);
 }
 
 export interface CampusEmailFormProps {

@@ -1,3 +1,9 @@
+import { ChatScreen } from "./_components/ChatScreen";
+
 export default function ChatPage() {
-  return <section className="placeholder-page"><h1>Chat</h1><p>Coming in this week&apos;s build</p></section>;
+  return (
+    <section className="placeholder-page">
+      <ChatScreen />
+    </section>
+  );
 }

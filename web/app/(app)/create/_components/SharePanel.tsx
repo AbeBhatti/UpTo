@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { UpTo } from "@upto/contracts";
 import { Banner, Button, Panel, formStyles as s } from "../_shared/form";
@@ -38,9 +39,9 @@ export function SharePanel({ upTo, onCreateAnother }: { upTo: UpTo; onCreateAnot
       {copied === "failed" ? <Banner tone="danger">Couldn&apos;t copy. Select the link and copy it yourself.</Banner> : null}
 
       <div className={s.actions}>
-        <a className={`${s.button} ${s.primary}`} href={`/u/${encodeURIComponent(upTo.shareSlug)}`}>
+        <Link className={`${s.button} ${s.primary}`} href={`/u/${encodeURIComponent(upTo.shareSlug)}`}>
           Open share page
-        </a>
+        </Link>
         {onCreateAnother ? (
           <Button type="button" variant="secondary" onClick={onCreateAnother}>
             Post another
