@@ -1,0 +1,242 @@
+/* Chat: room list + thread. Tokens only — no hex, no raw pixels. */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, calc(var(--up-size-readable-width) / 2)) minmax(0, 1fr);
+  gap: var(--up-space-s16);
+  block-size: calc(100vh - 2 * var(--up-space-gutter));
+  min-block-size: calc(var(--up-size-readable-width) / 2);
+  font-family: var(--up-font-sans);
+  color: var(--up-text);
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+  background: var(--up-surface-sheet);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-card-float);
+  overflow: hidden;
+}
+
+.paneHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--up-space-s8);
+  padding: var(--up-space-s16) var(--up-space-s16) var(--up-space-s12);
+  border-bottom: var(--up-stroke-hairline) solid var(--up-border);
+}
+
+.paneTitle {
+  margin: 0;
+  font-size: var(--up-type-headline-size);
+  font-weight: var(--up-type-headline-weight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paneSub {
+  font-size: var(--up-type-footnote-size);
+  color: var(--up-text-tertiary);
+}
+
+.roomList {
+  list-style: none;
+  margin: 0;
+  padding: var(--up-space-s8);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s4);
+}
+
+.room {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--up-space-s12);
+  inline-size: 100%;
+  padding: var(--up-space-s12);
+  border: none;
+  border-radius: var(--up-radius-control);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.room:hover {
+  background: var(--up-surface-subtle);
+}
+
+.room[aria-current="true"] {
+  background: var(--up-surface-inset);
+}
+
+.room:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--up-space-s4) var(--up-primary-ring);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  inline-size: var(--up-size-avatar-header);
+  block-size: var(--up-size-avatar-header);
+  border-radius: var(--up-radius-pill);
+  background: var(--up-surface-icon-tile);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
+}
+
+.roomText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s4);
+  min-inline-size: 0;
+}
+
+.roomName {
+  font-size: var(--up-type-body-size);
+  font-weight: var(--up-type-headline-weight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roomPreview {
+  font-size: var(--up-type-footnote-size);
+  color: var(--up-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unread {
+  min-inline-size: var(--up-space-s24);
+  padding: 0 var(--up-space-s8);
+  border-radius: var(--up-radius-pill);
+  background: var(--up-primary);
+  color: var(--up-on-primary);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.thread {
+  flex: 1;
+  min-block-size: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s12);
+  padding: var(--up-space-s16);
+}
+
+.msg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s4);
+  max-inline-size: 75%;
+  align-self: flex-start;
+}
+
+.mine {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.sender {
+  font-size: var(--up-type-footnote-size);
+  color: var(--up-text-tertiary);
+}
+
+.bubble {
+  margin: 0;
+  padding: var(--up-space-s8) var(--up-space-s12);
+  border-radius: var(--up-radius-card);
+  background: var(--up-surface-inset);
+  font-size: var(--up-type-body-size);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mine .bubble {
+  background: var(--up-primary);
+  color: var(--up-on-primary);
+}
+
+.time {
+  font-size: var(--up-type-footnote-size);
+  color: var(--up-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s8);
+  padding: var(--up-space-s12) var(--up-space-s16) var(--up-space-s16);
+  border-top: var(--up-stroke-hairline) solid var(--up-border);
+}
+
+.composerRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--up-space-s8);
+}
+
+.composerInput {
+  flex: 1;
+  min-block-size: var(--up-size-tap-target);
+  max-block-size: calc(var(--up-size-cta) * 4);
+  padding: var(--up-space-s12) var(--up-space-s16);
+  resize: none;
+  background: var(--up-surface-inset);
+  color: var(--up-text);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-control);
+  font: inherit;
+  font-size: var(--up-type-body-size);
+  outline: none;
+}
+
+.composerInput:focus-visible {
+  border-color: var(--up-primary);
+  box-shadow: 0 0 0 var(--up-space-s4) var(--up-primary-ring);
+}
+
+.over {
+  color: var(--up-danger);
+}
+
+.empty {
+  margin: auto;
+  padding: var(--up-space-s24);
+  text-align: center;
+  font-size: var(--up-type-body-size);
+  color: var(--up-text-tertiary);
+}
+
+.small {
+  min-height: var(--up-size-icon-button);
+  padding: 0 var(--up-space-s16);
+  font-size: var(--up-type-footnote-size);
+}
+
+/* Same breakpoint as web/shell/AppShell.module.css (media queries cannot read tokens). */
+@media (max-width: 48rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    block-size: auto;
+  }
+  .thread {
+    min-block-size: calc(var(--up-size-readable-width) / 2);
+  }
+}

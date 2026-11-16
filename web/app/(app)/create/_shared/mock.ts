@@ -26,11 +26,13 @@ import type {
   ConfirmCodeResponse,
   ErrorCode,
   Me,
+  Message,
+  Room,
   RouteKey,
   SendCodeResponse,
   UpTo,
 } from "@upto/contracts";
-import { DROPS, EVENTS, ME, NOW, PEOPLE, UPTOS } from "@upto/fixtures";
+import { DROPS, EVENTS, ME, NOW, PEOPLE, ROOMS, UPTOS } from "@upto/fixtures";
 import { UPTO_DESCRIPTION_MAX, codePointLength, toDescriptionField } from "./description";
 
 export const MOCK_LIVE_CODE = "123456";
@@ -68,6 +70,46 @@ const adminState = {
     [...EVENTS.filter((e) => e.reviewStatus === "PENDING"), ...extraPending].map((e) => [e.id, e]),
   ),
 };
+
+// ----- Chat ----------------------------------------------------------------
+// The fixture's group room plus a direct room, each with a short history.
+// "Me" in chat is the fixture's ME (@abhi), the user GET /auth/me returns here.
+const minutesBefore = (m: number) => new Date(Date.parse(NOW) - m * 60_000).toISOString();
+const chatState = (() => {
+  const group = ROOMS[0]!;
+  const liz = PEOPLE[1]!;
+  const meUser = PEOPLE.find((p) => p.id === ME.id) ?? PEOPLE[0]!;
+  const direct: Room = {
+    id: "rm_direct_liz",
+    type: "DIRECT",
+    name: null,
+    members: [meUser, liz],
+    lastMessage: null,
+    unreadCount: 1,
+    mutedUntil: null,
+  };
+  const msg = (roomId: string, i: number, sender: (typeof PEOPLE)[number], content: string, mins: number): Message => ({
+    id: `msg_mock_${roomId}_${i}`,
+    roomId,
+    sender,
+    content,
+    revision: 0,
+    createdAt: minutesBefore(mins),
+  });
+  const messages = new Map<string, Message[]>([
+    [
+      group.id,
+      [
+        msg(group.id, 1, PEOPLE[3] ?? meUser, "app shell is on main, pull before you start", 95),
+        msg(group.id, 2, meUser, "nice, events endpoints going up tonight", 80),
+        ...(group.lastMessage ? [group.lastMessage] : []),
+      ],
+    ],
+    [direct.id, [msg(direct.id, 1, liz, "share page is done, want to try a link?", 12)]],
+  ]);
+  direct.lastMessage = messages.get(direct.id)!.at(-1)!;
+  return { rooms: new Map<string, Room>([[group.id, { ...group }], [direct.id, direct]]), messages, meUser };
+})();
 
 function mockReports(): Report[] {
   const reporter = PEOPLE[2] ?? PEOPLE[0]!;
@@ -320,6 +362,47 @@ function handle(key: RouteKey, path: string, body: Body): ApiResponse<unknown> {
 
     case "listReports":
       return ok<Report[]>(mockReports());
+
+    case "me":
+      return ok<AuthResponse>({ user: ME });
+
+    case "listRooms": {
+      const rooms = [...chatState.rooms.values()].sort((a, b) =>
+        (b.lastMessage?.createdAt ?? "").localeCompare(a.lastMessage?.createdAt ?? ""),
+      );
+      return ok<Room[]>(rooms);
+    }
+
+    case "listMessages": {
+      const id = decodeURIComponent(path.split("/").at(-2) ?? "");
+      const room = chatState.rooms.get(id);
+      if (!room) return fail("not_found", "Room not found");
+      chatState.rooms.set(id, { ...room, unreadCount: 0 }); // reading marks it read
+      return ok<Message[]>(chatState.messages.get(id) ?? []);
+    }
+
+    case "sendMessage": {
+      const bad = strict(body, ["content"]);
+      if (bad) return fail("invalid_request", bad);
+      const id = decodeURIComponent(path.split("/").at(-2) ?? "");
+      const room = chatState.rooms.get(id);
+      if (!room) return fail("not_found", "Room not found");
+      if (typeof body.content !== "string") return fail("invalid_request", "Message must be text", "content");
+      const content = body.content.trim();
+      if (!content) return fail("invalid_request", "Message cannot be empty", "content");
+      if (content.length > 4000) return fail("invalid_request", "Message must be at most 4000 characters", "content");
+      const message: Message = {
+        id: `msg_mock_${newSlug()}`,
+        roomId: id,
+        sender: chatState.meUser,
+        content,
+        revision: 0,
+        createdAt: new Date().toISOString(),
+      };
+      chatState.messages.set(id, [...(chatState.messages.get(id) ?? []), message]);
+      chatState.rooms.set(id, { ...room, lastMessage: message });
+      return ok<Message>(message);
+    }
 
     default:
       return fail("server_error", `Mock has no handler for ${key} (${path}).`);
