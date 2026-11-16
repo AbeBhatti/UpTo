@@ -9,6 +9,7 @@ import type { UpTosDeps } from "./controllers/uptos.controller.js";
 import type { VerificationDeps } from "./controllers/studentVerification.controller.js";
 import type { AdminRouteDeps } from "./routes/admin.route.js";
 import { currentUserId, startSession } from "./routes/auth.route.js";
+import { shareBaseUrlFromEnv } from "./services/uptos/slug.js";
 import type { ChatRouteDeps } from "./routes/chat.route.js";
 import type { DropsRouteDeps } from "./routes/drops.route.js";
 import type { EventsRouteDeps } from "./routes/events.route.js";
@@ -92,10 +93,10 @@ export function createRealDeps(): AppDeps {
       startSession: (response, userId) => startSession(response, userId, now()),
     } as VerificationRouteDeps,
     events: { db: sharedDb, now, currentUserId: sessionUserId } as EventsRouteDeps,
-    uptos: { db: sharedDb, now, currentUserId: sessionUserId } as UpTosRouteDeps,
+    uptos: { db: sharedDb, now, currentUserId: sessionUserId, shareBaseUrl: shareBaseUrlFromEnv() } as UpTosRouteDeps,
     drops: { db: sharedDb, now, currentUserId: sessionUserId } as DropsRouteDeps,
     chat: { db: sharedDb, now, currentUserId: sessionUserId } as ChatRouteDeps,
-    admin: { db: sharedDb, now, currentUserId: sessionUserId } as AdminRouteDeps,
+    admin: { db: sharedDb, now, currentUserId: sessionUserId, shareBaseUrl: shareBaseUrlFromEnv() } as AdminRouteDeps,
   };
 }
 
