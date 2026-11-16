@@ -37,12 +37,15 @@ export async function loadPoll(db: UpTosDb, upToId: string, viewerId: string | n
     question: poll.question,
     slots: await Promise.all(
       slots.map(async (slot) => {
-        const mine = viewerId === null ? null : await db.pollResponse.findUnique({ where: { slotId_userId: { slotId: slot.id, userId: viewerId } } });
+        const [mine, availableCount] = await Promise.all([
+          viewerId === null ? null : db.pollResponse.findUnique({ where: { slotId_userId: { slotId: slot.id, userId: viewerId } } }),
+          db.pollResponse.count({ where: { slotId: slot.id, available: true } }),
+        ]);
         return {
           id: slot.id,
           label: slot.label,
           order: slot.order,
-          availableCount: await db.pollResponse.count({ where: { slotId: slot.id, available: true } }),
+          availableCount,
           myResponse: mine === null ? null : mine.available,
         };
       }),
@@ -51,10 +54,14 @@ export async function loadPoll(db: UpTosDb, upToId: string, viewerId: string | n
 }
 
 export async function toUpTo(db: UpTosDb, row: UpToRow, viewerId: string | null, now: Date, shareBaseUrl: string): Promise<UpTo> {
-  const creator = await db.user.findUnique({ where: { id: row.creatorId } });
+  // Independent reads, run together: against Postgres each is a round trip.
+  const [creator, mine, goingCount, poll] = await Promise.all([
+    db.user.findUnique({ where: { id: row.creatorId } }),
+    viewerId === null ? null : db.upToRsvp.findUnique({ where: { upToId_userId: { upToId: row.id, userId: viewerId } } }),
+    db.upToRsvp.count({ where: { upToId: row.id } }),
+    loadPoll(db, row.id, viewerId),
+  ]);
   if (creator === null) throw new Error(`Up-To ${row.id} has no creator ${row.creatorId}`);
-  const mine =
-    viewerId === null ? null : await db.upToRsvp.findUnique({ where: { upToId_userId: { upToId: row.id, userId: viewerId } } });
 
   return {
     id: row.id,
@@ -68,9 +75,9 @@ export async function toUpTo(db: UpTosDb, row: UpToRow, viewerId: string | null,
     shareSlug: row.shareSlug,
     shareUrl: shareUrlFor(shareBaseUrl, row.shareSlug),
     published: row.published,
-    goingCount: await db.upToRsvp.count({ where: { upToId: row.id } }),
+    goingCount,
     myRsvp: mine === null ? null : { going: true, anonymous: mine.anonymous },
-    poll: await loadPoll(db, row.id, viewerId),
+    poll,
     // An Up-To has one time and no end, so it reads like an event with no end time.
     timeLabel: timeLabel({ startsAt: row.scheduledAt, endsAt: null }, now),
   };

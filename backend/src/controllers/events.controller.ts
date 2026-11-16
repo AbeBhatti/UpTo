@@ -61,20 +61,23 @@ export async function listEvents(
   const scope = { AND: [APPROVED, windowWhere(when, now), category ? { category } : {}] };
   const shown = filter && SHOW_ME[filter] ? { AND: [scope, { category: SHOW_ME[filter] }] } : scope;
 
-  // One extra row says whether there is a next page without a second count.
-  const rows = await deps.db.campusEvent.findMany({
-    where: shown,
-    include: eventInclude(viewerId),
-    orderBy: windowOrder(when),
-    skip: cursor,
-    take: limit + 1,
-  });
-
-  // The SHOW ME counts ignore `filter` itself, so every chip shows its own total.
-  const counts: Record<string, number> = {};
-  for (const [key, showMe] of Object.entries(SHOW_ME)) {
-    counts[key] = await deps.db.campusEvent.count({ where: showMe ? { AND: [scope, { category: showMe }] } : scope });
-  }
+  // The page and the five SHOW ME counts are independent, so they run
+  // together: against Postgres each query is a network round trip.
+  const [rows, ...totals] = await Promise.all([
+    // One extra row says whether there is a next page without a second count.
+    deps.db.campusEvent.findMany({
+      where: shown,
+      include: eventInclude(viewerId),
+      orderBy: windowOrder(when),
+      skip: cursor,
+      take: limit + 1,
+    }),
+    // The SHOW ME counts ignore `filter` itself, so every chip shows its own total.
+    ...Object.values(SHOW_ME).map((showMe) =>
+      deps.db.campusEvent.count({ where: showMe ? { AND: [scope, { category: showMe }] } : scope }),
+    ),
+  ]);
+  const counts: Record<string, number> = Object.fromEntries(Object.keys(SHOW_ME).map((key, i) => [key, totals[i]!]));
 
   return ok({
     events: rows.slice(0, limit).map((row) => toCampusEvent(row, now)),

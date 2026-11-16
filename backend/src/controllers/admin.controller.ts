@@ -94,19 +94,24 @@ export async function listReports(deps: AdminDeps, adminId: string): Promise<Rep
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   });
   const now = deps.now();
-  const reports: Report[] = [];
-  for (const row of rows) {
-    const reporter = await deps.db.user.findUnique({ where: { id: row.reporterId } });
-    if (reporter === null) continue;
-    const base = reportBase(row, toPublicUser(reporter));
-    if (row.targetType === "DROP" && row.dropId) {
-      const drop = await deps.db.drop.findUnique({ where: { id: row.dropId } });
-      if (drop) reports.push({ ...base, targetType: "DROP", drop: await toDrop(deps.db, drop, adminId, now) });
-    } else if (row.targetType === "UPTO" && row.upToId) {
-      const upTo = await deps.db.upTo.findUnique({ where: { id: row.upToId } });
-      const shareBase = deps.shareBaseUrl ?? DEFAULT_SHARE_BASE_URL;
-      if (upTo) reports.push({ ...base, targetType: "UPTO", upTo: await toUpTo(deps.db, upTo, adminId, now, shareBase) });
-    }
-  }
-  return ok(reports);
+  const shareBase = deps.shareBaseUrl ?? DEFAULT_SHARE_BASE_URL;
+  // Each report is presented independently, so they all load together;
+  // Promise.all keeps the newest-first order of `rows`.
+  const presented = await Promise.all(
+    rows.map(async (row): Promise<Report | null> => {
+      const reporter = await deps.db.user.findUnique({ where: { id: row.reporterId } });
+      if (reporter === null) return null;
+      const base = reportBase(row, toPublicUser(reporter));
+      if (row.targetType === "DROP" && row.dropId) {
+        const drop = await deps.db.drop.findUnique({ where: { id: row.dropId } });
+        return drop ? { ...base, targetType: "DROP", drop: await toDrop(deps.db, drop, adminId, now) } : null;
+      }
+      if (row.targetType === "UPTO" && row.upToId) {
+        const upTo = await deps.db.upTo.findUnique({ where: { id: row.upToId } });
+        return upTo ? { ...base, targetType: "UPTO", upTo: await toUpTo(deps.db, upTo, adminId, now, shareBase) } : null;
+      }
+      return null;
+    }),
+  );
+  return ok(presented.filter((report): report is Report => report !== null));
 }
