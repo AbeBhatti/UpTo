@@ -46,7 +46,7 @@ describe("User", () => {
   });
 
   it("[invalid] bad username characters, unknown gender and None/null password are rejected", () => {
-    rejects(signUpSchema, { ...valid, username: "bronco fan!" }, "Username may only contain");
+    rejects(signUpSchema, { ...valid, username: "bronco fan!" }, /^Username may only contain/);
     rejects(signUpSchema, { ...valid, gender: "WOOKIEE" }, "Unknown gender");
     rejects(signUpSchema, { ...valid, password: null }, "Password is required");
   });
