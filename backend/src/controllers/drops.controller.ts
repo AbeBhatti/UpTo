@@ -1,8 +1,11 @@
-import type { ApiResponse, Drop as DropDto, ErrorCode } from "@upto/contracts";
+import type { ApiResponse, DropReport, Drop as DropDto, ErrorCode } from "@upto/contracts";
 import type { DropsDb } from "../services/drops/db.js";
 import { DROP_LIFETIME_MS, Drop, toDrop } from "../services/drops/drops.js";
+import { toPublicUser } from "../services/uptos/present.js";
+import { reportBase, reportDetails, type ReportsDb } from "../services/uptos/reports.js";
 import { isUniqueClash } from "../services/verification/db.js";
 import { DROPS_RULES_VERSION, createDropSchema, rulesAgreementSchema, voteDropSchema } from "../validators/drops.validator.js";
+import { submitReportSchema } from "../validators/upto.validator.js";
 
 /**
  * Drops: quick map pins (Lab 4: Drop). Every function takes the viewer's id
@@ -15,7 +18,7 @@ import { DROPS_RULES_VERSION, createDropSchema, rulesAgreementSchema, voteDropSc
  */
 
 export interface DropsDeps {
-  db: DropsDb;
+  db: DropsDb & ReportsDb;
   now: () => Date;
 }
 
@@ -132,4 +135,30 @@ export async function voteDrop(deps: DropsDeps, userId: string, dropId: string, 
     });
   }
   return ok(await toDrop(deps.db, drop, userId, now));
+}
+
+// POST /drops/:id/report — narrowed into the class diagram's DropReport. An
+// expired drop can still be reported: abuse does not stop mattering at expiry.
+export async function reportDrop(deps: DropsDeps, userId: string, dropId: string, body: unknown): Promise<Reply<DropReport>> {
+  const parsed = submitReportSchema.safeParse(body);
+  if (!parsed.success) return invalid(parsed.error);
+
+  const drop = await deps.db.drop.findUnique({ where: { id: dropId } });
+  if (drop === null) return noDrop();
+  const reporter = await deps.db.user.findUnique({ where: { id: userId } });
+  if (reporter === null) return fail(401, "unauthorized", "Sign in first.");
+
+  const report = await deps.db.report.create({
+    data: {
+      reporterId: userId,
+      targetType: "DROP",
+      reason: parsed.data.reason,
+      details: reportDetails(parsed.data.details),
+      dropId,
+      upToId: null,
+      messageId: null,
+    },
+  });
+  const presented = await toDrop(deps.db, drop, userId, deps.now());
+  return ok({ ...reportBase(report, toPublicUser(reporter)), targetType: "DROP", drop: presented }, 201);
 }

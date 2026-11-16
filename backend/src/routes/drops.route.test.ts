@@ -15,7 +15,7 @@ import { after, before, beforeEach, describe, test } from "node:test";
 import express from "express";
 import type { Drop } from "@upto/contracts";
 import { DROPS, ME, NOW, PEOPLE } from "@upto/fixtures";
-import type { DropsDb } from "../services/drops/db.js";
+import type { DropsDeps } from "../controllers/drops.controller.js";
 import { DROP_LIFETIME_MS } from "../services/drops/drops.js";
 import { contentDb as db } from "../services/uptos/fakeDb.js";
 import { dropsRouter } from "./drops.route.js";
@@ -35,7 +35,7 @@ const app = express();
 app.use(express.json());
 app.use(
   dropsRouter({
-    db: db as unknown as DropsDb,
+    db: db as unknown as DropsDeps["db"],
     now,
     currentUserId: (request) => request.header("x-user-id") ?? null,
   }),

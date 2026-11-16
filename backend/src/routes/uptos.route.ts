@@ -5,6 +5,7 @@ import {
   createUpTo,
   getSharedUpTo,
   getUpTo,
+  reportUpTo,
   respondPoll,
   rsvpUpTo,
   type Reply,
@@ -14,8 +15,8 @@ import {
 /**
  * Express adapter for /uptos/* (Up-Tos and their polls) and the public
  * /u/:slug share page. Reading works signed out (myRsvp is then null);
- * creating, RSVPing and polls need a session. Session handling is injected
- * through `currentUserId`, as for events and chat.
+ * creating, RSVPing, polls and reports need a session. Session handling is
+ * injected through `currentUserId`, as for events and chat.
  */
 export interface UpTosRouteDeps extends UpTosDeps {
   currentUserId: (request: Request) => string | null;
@@ -66,6 +67,11 @@ export function uptosRouter(deps: UpTosRouteDeps): Router {
   router.post(pathOf(ROUTES.respondPoll), async (request, response) => {
     const userId = signedIn(request, response);
     if (userId) send(response, await respondPoll(deps, userId, param(request, "id"), request.body));
+  });
+
+  router.post(pathOf(ROUTES.reportUpTo), async (request, response) => {
+    const userId = signedIn(request, response);
+    if (userId) send(response, await reportUpTo(deps, userId, param(request, "id"), request.body));
   });
 
   return router;

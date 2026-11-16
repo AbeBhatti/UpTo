@@ -1,10 +1,11 @@
-import type { ApiResponse, ErrorCode, Poll, UpTo } from "@upto/contracts";
+import type { ApiResponse, ErrorCode, Poll, UpTo, UpToReport } from "@upto/contracts";
 import type { UpToRow, UpTosDb } from "../services/uptos/db.js";
-import { loadPoll, toUpTo } from "../services/uptos/present.js";
+import { loadPoll, toPublicUser, toUpTo } from "../services/uptos/present.js";
+import { reportBase, reportDetails, type ReportsDb } from "../services/uptos/reports.js";
 import { DEFAULT_SHARE_BASE_URL, newShareSlug } from "../services/uptos/slug.js";
 import { isUniqueClash } from "../services/verification/db.js";
 import { createPollSchema, respondPollSchema } from "../validators/poll.validator.js";
-import { createUpToSchema, upToRsvpSchema } from "../validators/upto.validator.js";
+import { createUpToSchema, submitReportSchema, upToRsvpSchema } from "../validators/upto.validator.js";
 
 /**
  * Up-Tos: plans students post themselves (Lab 4: UpTo). Every function takes
@@ -18,7 +19,7 @@ import { createUpToSchema, upToRsvpSchema } from "../validators/upto.validator.j
  */
 
 export interface UpTosDeps {
-  db: UpTosDb;
+  db: UpTosDb & ReportsDb;
   now: () => Date;
   /** Base of UpTo.shareUrl. Defaults to https://up-to.co, as in the fixtures. */
   shareBaseUrl?: string;
@@ -179,4 +180,30 @@ export async function respondPoll(deps: UpTosDeps, userId: string, upToId: strin
     }
   });
   return ok((await loadPoll(deps.db, upToId, userId))!);
+}
+
+// POST /uptos/:id/report — narrowed into the class diagram's UpToReport.
+export async function reportUpTo(deps: UpTosDeps, userId: string, upToId: string, body: unknown): Promise<Reply<UpToReport>> {
+  const parsed = submitReportSchema.safeParse(body);
+  if (!parsed.success) return invalid(parsed.error);
+
+  // Only what the reporter can see can be reported; a hidden draft stays 404.
+  const row = await visibleUpTo(deps.db, upToId, userId);
+  if (row === null) return noUpTo();
+  const reporter = await deps.db.user.findUnique({ where: { id: userId } });
+  if (reporter === null) return fail(401, "unauthorized", "Sign in first.");
+
+  const report = await deps.db.report.create({
+    data: {
+      reporterId: userId,
+      targetType: "UPTO",
+      reason: parsed.data.reason,
+      details: reportDetails(parsed.data.details),
+      upToId,
+      dropId: null,
+      messageId: null,
+    },
+  });
+  const upTo = await toUpTo(deps.db, row, userId, deps.now(), shareBase(deps));
+  return ok({ ...reportBase(report, toPublicUser(reporter)), targetType: "UPTO", upTo }, 201);
 }

@@ -1,11 +1,12 @@
 import { ROUTES } from "@upto/contracts";
 import { Router, type Request, type Response } from "express";
-import { agreeToRules, createDrop, listDrops, voteDrop, type DropsDeps, type Reply } from "../controllers/drops.controller.js";
+import { agreeToRules, createDrop, listDrops, reportDrop, voteDrop, type DropsDeps, type Reply } from "../controllers/drops.controller.js";
 
 /**
  * Express adapter for /drops/*. Reading works signed out (myVote is then
- * null); agreeing to the rules, posting and voting need a session. Session
- * handling is injected through `currentUserId`, as for events and chat.
+ * null); agreeing to the rules, posting, voting and reporting need a
+ * session. Session handling is injected through `currentUserId`, as for
+ * events and chat.
  */
 export interface DropsRouteDeps extends DropsDeps {
   currentUserId: (request: Request) => string | null;
@@ -49,6 +50,11 @@ export function dropsRouter(deps: DropsRouteDeps): Router {
   router.post(pathOf(ROUTES.voteDrop), async (request, response) => {
     const userId = signedIn(request, response);
     if (userId) send(response, await voteDrop(deps, userId, param(request, "id"), request.body));
+  });
+
+  router.post(pathOf(ROUTES.reportDrop), async (request, response) => {
+    const userId = signedIn(request, response);
+    if (userId) send(response, await reportDrop(deps, userId, param(request, "id"), request.body));
   });
 
   return router;

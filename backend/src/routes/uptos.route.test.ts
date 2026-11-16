@@ -17,7 +17,7 @@ import { after, before, beforeEach, describe, test } from "node:test";
 import express from "express";
 import type { ApiResponse, CreateUpToRequest, UpTo } from "@upto/contracts";
 import { ME, NOW, PEOPLE, UPTOS } from "@upto/fixtures";
-import type { UpTosDb } from "../services/uptos/db.js";
+import type { UpTosDeps } from "../controllers/uptos.controller.js";
 import { contentDb as db } from "../services/uptos/fakeDb.js";
 import { SLUG_ALPHABET } from "../services/uptos/slug.js";
 import { uptosRouter } from "./uptos.route.js";
@@ -36,7 +36,7 @@ const app = express();
 app.use(express.json());
 app.use(
   uptosRouter({
-    db: db as unknown as UpTosDb,
+    db: db as unknown as UpTosDeps["db"],
     now,
     // Tests can queue slugs to force a clash; otherwise the real generator runs.
     newSlug: () => slugs.shift() ?? randomSlug(),
