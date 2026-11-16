@@ -88,6 +88,11 @@ function detailDate(value: string) {
   }).format(new Date(value));
 }
 
+/** "1 event", "6 events". */
+function eventCount(count: number) {
+  return `${count} ${count === 1 ? 'event' : 'events'}`;
+}
+
 function queryHref(when: DiscoverWhen, filter: ShowFilter, eventId?: string) {
   const query = new URLSearchParams(when === 'upcoming' ? { show: filter } : { when, show: filter });
   if (eventId) query.set('event', eventId);
@@ -167,7 +172,7 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
       setNextCursor(page.nextCursor);
       setNow(page.now);
       setCounts(page.counts);
-      setTotal(page.counts.all ?? 0);
+      setTotal(page.counts[filter] ?? 0);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not load events.');
     } finally {
@@ -180,7 +185,7 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
     startTransition(() => router.refresh());
   }
 
-  const summary = `${WINDOW_OPTIONS.find((item) => item.value === when)?.label ?? 'Upcoming'} · ${total} events`;
+  const summary = `${WINDOW_OPTIONS.find((item) => item.value === when)?.label ?? 'Upcoming'} · ${eventCount(total)}`;
   const directionsUrl = selectedEvent
     ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
       selectedEvent.lat !== null && selectedEvent.lng !== null
@@ -223,7 +228,7 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
                   onChange={() => changeFilters(when, option.value)}
                 />
                 <span>{option.label}</span>
-                <span className={styles.count}>{counts[option.value] ?? 0} events</span>
+                <span className={styles.count}>{eventCount(counts[option.value] ?? 0)}</span>
               </label>
             ))}
           </div>
@@ -246,7 +251,7 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
                     <span>{group.lead}</span>
                     {group.weekday ? <span className={styles.weekday}>{group.weekday}</span> : null}
                   </div>
-                  <span className={styles.dayCount}>{group.events.length} events</span>
+                  <span className={styles.dayCount}>{eventCount(group.events.length)}</span>
                 </div>
                 <div className={styles.eventList}>
                   {group.events.map((event) => {

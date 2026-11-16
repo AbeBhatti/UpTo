@@ -47,7 +47,8 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
       events={events}
       now={now}
       counts={counts}
-      total={counts.all ?? 0}
+      // The heading counts the list it sits over: the selected SHOW ME filter.
+      total={counts[filter] ?? 0}
       nextCursor={nextCursor}
       error={error}
       when={when}
