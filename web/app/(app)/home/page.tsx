@@ -1,4 +1,5 @@
 import type { CampusEvent } from '@upto/contracts';
+import { headers } from 'next/headers';
 import { getHomeData } from '@/lib/events';
 import { EventRow, JoinButton, SectionHeader, SignupBadge, TimeTile } from '@/components';
 import styles from './home.module.css';
@@ -78,7 +79,10 @@ function LaterCard({ event }: { event: CampusEvent }) {
 }
 
 export default async function HomePage() {
-  const { events, now, campusRail } = await getHomeData();
+  // Reading the request makes Home render per request, as Discover does,
+  // instead of a build-time snapshot; the cookie carries the viewer's session.
+  const requestHeaders = await headers();
+  const { events, now, campusRail } = await getHomeData({ cookie: requestHeaders.get('cookie') ?? undefined });
   const todayKey = pacificDateKey(now);
   const todayWeekday = localWeekday(now);
   const weekdayIndex = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(todayWeekday);

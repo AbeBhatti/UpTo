@@ -133,7 +133,7 @@ export async function getDiscoverData(
  * Load the event data Home needs. Fixture mode is the default and deliberately
  * makes no request, so its server-computed labels stay paired with fixture NOW.
  */
-export async function getHomeData(): Promise<HomeData> {
+export async function getHomeData(options: { cookie?: string } = {}): Promise<HomeData> {
   if (process.env.NEXT_PUBLIC_USE_FIXTURES !== "false") {
     return {
       events: EVENTS,
@@ -147,9 +147,11 @@ export async function getHomeData(): Promise<HomeData> {
     throw new Error("NEXT_PUBLIC_API_URL is required when fixtures are disabled.");
   }
 
+  // Forward the viewer's session, as Discover does, so myStatus is theirs.
   const response = await fetch(`${apiUrl.replace(/\/$/, "")}/events`, {
     method: "GET",
     credentials: "include",
+    ...(options.cookie ? { headers: { cookie: options.cookie } } : {}),
   });
 
   if (!response.ok) {
