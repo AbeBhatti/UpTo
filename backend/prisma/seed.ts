@@ -20,10 +20,11 @@
  * Idempotent: every row is upserted on a stable id or unique key, so running
  * it twice changes nothing.
  *
- * Times: by default every timestamp is the fixture's own, which is what the
- * screenshots show at the fixture's NOW (Sun 15 Nov 2026, 1:00 p.m. PT). Set
- * SEED_SHIFT=now to move everything by (now - NOW) so the same sections are
- * populated whenever you run it; clock times then shift with it.
+ * Times: by DEFAULT every timestamp is shifted by (now - NOW), so Right Now,
+ * Later today and This week are populated whenever you run it; clock times
+ * shift with it. Set SEED_LITERAL=1 to keep the fixtures' own timestamps
+ * instead, which reproduce the screenshots exactly but only at the fixture's
+ * NOW (Sun 15 Nov 2026, 1:00 p.m. PT); any later, Home's sections are empty.
  *
  * Passwords: set SEED_PASSWORD to give Abhi, Edrick, Liz and Abe a password you
  * can sign in with. Without it they are created with no password.
@@ -42,7 +43,7 @@ if (process.env.NODE_ENV === "production") {
 
 const prisma = new PrismaClient();
 
-const SHIFT_MS = process.env.SEED_SHIFT === "now" ? Date.now() - Date.parse(NOW) : 0;
+const SHIFT_MS = process.env.SEED_LITERAL === "1" ? 0 : Date.now() - Date.parse(NOW);
 const at = (iso: string) => new Date(Date.parse(iso) + SHIFT_MS);
 const atOrNull = (iso: string | null) => (iso === null ? null : at(iso));
 const MINUTE = 60 * 1000;
