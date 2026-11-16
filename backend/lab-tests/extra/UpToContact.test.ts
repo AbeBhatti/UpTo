@@ -17,7 +17,7 @@ const upTo = {
   location: "Benson Center",
 };
 
-const CONTACT = "contact must be an email address or a phone number of 7 to 15 digits";
+const CONTACT = "Use an email address, or a phone number with 7 to 15 digits.";
 
 describe("UpTo contact", () => {
   it("[normal] contact is optional: leaving it out is accepted and stays absent", () => {
@@ -42,14 +42,14 @@ describe("UpTo contact", () => {
       `${"a".repeat(64)}@${"b".repeat(63)}.${"c".repeat(63)}.${"d".repeat(length - 64 - 1 - 64 - 64 - 4)}.com`;
     assert.equal(email(254).length, 254);
     assert.equal(accepts(createUpToSchema, { ...upTo, contact: email(254) }).contact, email(254));
-    rejects(createUpToSchema, { ...upTo, contact: email(255) }, "contact must be at most 254 characters");
+    rejects(createUpToSchema, { ...upTo, contact: email(255) }, "That contact is too long.");
   });
 
   it("[invalid] blank, garbage, null and non-string contacts are rejected", () => {
     for (const contact of ["", "   ", "call me maybe", "bronco@", "408-CALL-NOW"]) {
       rejects(createUpToSchema, { ...upTo, contact }, CONTACT);
     }
-    rejects(createUpToSchema, { ...upTo, contact: null }, "contact must be a string");
-    rejects(createUpToSchema, { ...upTo, contact: 4085544000 }, "contact must be a string");
+    rejects(createUpToSchema, { ...upTo, contact: null }, "Add an email address or a phone number.");
+    rejects(createUpToSchema, { ...upTo, contact: 4085544000 }, "Add an email address or a phone number.");
   });
 });

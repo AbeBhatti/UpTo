@@ -1,11 +1,13 @@
 import { createRequire } from "node:module";
 import type { PrismaClient } from "@prisma/client";
+import type { AdminDb } from "./controllers/admin.controller.js";
 import type { AuthDeps } from "./controllers/auth.controller.js";
 import type { ChatDeps } from "./controllers/chat.controller.js";
 import type { DropsDeps } from "./controllers/drops.controller.js";
 import type { EventsDeps } from "./controllers/events.controller.js";
 import type { UpTosDeps } from "./controllers/uptos.controller.js";
 import type { VerificationDeps } from "./controllers/studentVerification.controller.js";
+import type { AdminRouteDeps } from "./routes/admin.route.js";
 import { currentUserId, startSession } from "./routes/auth.route.js";
 import type { ChatRouteDeps } from "./routes/chat.route.js";
 import type { DropsRouteDeps } from "./routes/drops.route.js";
@@ -27,6 +29,7 @@ export interface AppDeps {
   uptos: UpTosRouteDeps;
   drops: DropsRouteDeps;
   chat: ChatRouteDeps;
+  admin: AdminRouteDeps;
 }
 
 let prisma: PrismaClient | undefined;
@@ -58,7 +61,7 @@ export function createRealDeps(): AppDeps {
         },
       });
     },
-  }) as AuthDb & VerificationDb & EventsDb & UpTosDb & ReportsDb & DropsDb & ChatDb;
+  }) as AuthDb & VerificationDb & EventsDb & UpTosDb & ReportsDb & DropsDb & ChatDb & AdminDb;
 
   return {
     auth: { db: sharedDb, now } as AuthDeps,
@@ -78,6 +81,7 @@ export function createRealDeps(): AppDeps {
     uptos: { db: sharedDb, now, currentUserId: sessionUserId } as UpTosRouteDeps,
     drops: { db: sharedDb, now, currentUserId: sessionUserId } as DropsRouteDeps,
     chat: { db: sharedDb, now, currentUserId: sessionUserId } as ChatRouteDeps,
+    admin: { db: sharedDb, now, currentUserId: sessionUserId } as AdminRouteDeps,
   };
 }
 

@@ -108,7 +108,7 @@ export function VerifyFlow({ onVerified, onSwitched }: { onVerified?: (user: Me)
 
     switch (res.error.code) {
       case "incorrect":
-        return setStatus({ kind: "incorrect" });
+        return setStatus({ kind: "incorrect", message: res.error.message });
       case "expired":
         return setStatus({ kind: "expired" });
       case "attempts_exhausted":

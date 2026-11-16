@@ -12,3 +12,6 @@ coverage/
 CLAUDE.md
 AGENTS.md
 .Codex/
+
+# TypeScript incremental build cache, rewritten on every build
+*.tsbuildinfo

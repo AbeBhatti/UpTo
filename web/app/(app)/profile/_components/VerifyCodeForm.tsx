@@ -15,7 +15,8 @@ import v from "./verify.module.css";
  */
 export type CodeStatus =
   | { kind: "idle" }
-  | { kind: "incorrect" }
+  /** `message` is the server's text, e.g. "That code is incorrect. 3 tries left." */
+  | { kind: "incorrect"; message?: string }
   | { kind: "expired" }
   | { kind: "attempts_exhausted" }
   | { kind: "error"; message: string };
@@ -51,7 +52,7 @@ export function VerifyCodeForm(p: VerifyCodeFormProps) {
 
   const fieldError =
     p.status.kind === "incorrect"
-      ? "That code isn't right. Check the most recent email and try again."
+      ? (p.status.message ?? "That code isn't right. Check the most recent email and try again.")
       : p.status.kind === "error"
         ? p.status.message
         : null;

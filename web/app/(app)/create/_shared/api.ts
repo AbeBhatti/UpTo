@@ -33,6 +33,34 @@ export function resolveRoute(key: RouteKey, params: Record<string, string> = {})
   return { method, path };
 }
 
+/**
+ * Abe binds a switch token to the device that earned it (`x-device-id`,
+ * backend/src/routes/studentVerification.route.ts). One stable id per browser,
+ * kept in localStorage; if storage is unavailable we fall back to an id for
+ * this page load, which still works for a verify → switch in one sitting.
+ */
+export const DEVICE_HEADER = "x-device-id";
+const DEVICE_KEY = "upto.deviceId";
+let memoryDeviceId: string | null = null;
+
+function newId() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function deviceId(): string {
+  try {
+    const saved = window.localStorage.getItem(DEVICE_KEY);
+    if (saved) return saved;
+    const fresh = newId();
+    window.localStorage.setItem(DEVICE_KEY, fresh);
+    return fresh;
+  } catch {
+    memoryDeviceId ??= newId();
+    return memoryDeviceId;
+  }
+}
+
 const NETWORK_ERROR = {
   ok: false,
   error: {
@@ -50,7 +78,10 @@ export async function call<T>(key: RouteKey, opts: CallOptions = {}): Promise<Ap
     const res = await fetch(`${BASE_URL}${path}`, {
       method,
       credentials: "include",
-      headers: opts.body === undefined ? undefined : { "content-type": "application/json" },
+      headers: {
+        [DEVICE_HEADER]: deviceId(),
+        ...(opts.body === undefined ? {} : { "content-type": "application/json" }),
+      },
       body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
     });
     const json: unknown = await res.json().catch(() => null);

@@ -30,6 +30,7 @@ const fakeDeps = {
   uptos: { db: emptyDb, now, currentUserId: () => null },
   drops: { db: emptyDb, now, currentUserId: () => null },
   chat: { db: emptyDb, now, currentUserId: () => null },
+  admin: { db: emptyDb, now, currentUserId: () => null },
 } as unknown as AppDeps;
 
 const app = createApp(fakeDeps);
@@ -57,7 +58,7 @@ test("GET /health returns the healthy envelope", async () => {
 
 test("implemented routes use their routers and unimplemented routes stay stubbed", async () => {
   const served = app.locals.servedRouteDefinitions as Set<string>;
-  assert.equal(served.size, 32);
+  assert.equal(served.size, 36);
 
   const eventsResponse = await fetch(`${baseUrl}/events`);
   assert.equal(eventsResponse.status, 200);

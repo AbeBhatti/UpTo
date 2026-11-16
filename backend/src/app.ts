@@ -2,6 +2,7 @@ import cors from "cors";
 import express, { type ErrorRequestHandler, type RequestHandler, type Router } from "express";
 import { ROUTES } from "@upto/contracts";
 import { createRealDeps, type AppDeps } from "./deps.js";
+import { adminRouter } from "./routes/admin.route.js";
 import { authRouter } from "./routes/auth.route.js";
 import { chatRouter } from "./routes/chat.route.js";
 import { dropsRouter } from "./routes/drops.route.js";
@@ -51,6 +52,8 @@ export function createApp(deps?: AppDeps): express.Express {
     uptosRouter(dependencies.uptos),
     dropsRouter(dependencies.drops),
     chatRouter(dependencies.chat),
+    // POST /admin/flyer has no handler here, so it keeps its 501 stub: Gemini is cut.
+    adminRouter(dependencies.admin),
   ];
   for (const router of routers) app.use(router);
 
