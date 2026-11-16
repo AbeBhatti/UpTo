@@ -5,6 +5,7 @@
  * Drives POST /verify/send, /verify/confirm and /verify/switch (Abe).
  */
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Me, PublicUser } from "@upto/contracts";
 import { isMockApi } from "../../create/_shared/api";
 import { MOCK_EXPIRED_CODE, MOCK_LIVE_CODE } from "../../create/_shared/mock";
@@ -22,6 +23,7 @@ type Step =
   | { kind: "in_use"; heldBy: PublicUser | null; switchToken: string | null };
 
 export function VerifyFlow({ onVerified, onSwitched }: { onVerified?: (user: Me) => void; onSwitched?: (user: Me) => void }) {
+  const router = useRouter();
   const [step, setStep] = useState<Step>({ kind: "email" });
   const [email, setEmail] = useState("");
   const [classOf, setClassOf] = useState<number | "">("");
@@ -191,7 +193,8 @@ export function VerifyFlow({ onVerified, onSwitched }: { onVerified?: (user: Me)
         />
       );
     case "verified":
-      return <VerifySuccess user={step.user} />;
+      // Onboarding ends on Home, not on a screen with nothing to press.
+      return <VerifySuccess user={step.user} onDone={() => router.push("/home")} />;
     case "in_use":
       return (
         <VerifyInUse

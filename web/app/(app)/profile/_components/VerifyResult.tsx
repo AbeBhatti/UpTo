@@ -14,7 +14,7 @@ export function VerifySuccess({ user, onDone }: { user: Me; onDone?: () => void 
       </Banner>
       {onDone ? (
         <Button block onClick={onDone}>
-          Continue
+          Continue to Home
         </Button>
       ) : null}
     </Panel>
