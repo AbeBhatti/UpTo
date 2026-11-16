@@ -10,6 +10,10 @@
  *   - two drops (one live, one expired) with their votes
  *   - the CSEN 174 study session Up-To, with its three-slot poll
  *   - the CSEN 174 Team chat room, with Abhi two messages behind
+ *   - a drop-rules agreement at the CURRENT version for every seeded user.
+ *     Posting a drop needs one (409 rules_outdated otherwise) and the app has
+ *     no screen to agree yet, so without this no demo account could post.
+ *     The gate itself stays in drops.controller.ts.
  *
  * Every denormalised count is BACKED BY REAL ROWS. goingCount is recomputed
  * from Attendance on every RSVP, so seeding "31 going" over one row would
@@ -35,6 +39,7 @@
 import { PrismaClient } from "@prisma/client";
 import { ADMIN, DROPS, EVENTS, ME, NOW, PEOPLE, ROOMS, UPTOS } from "@upto/fixtures";
 import { hashSecret } from "../src/services/verification/hashing.js";
+import { DROPS_RULES_VERSION } from "../src/validators/drops.validator.js";
 
 if (process.env.NODE_ENV === "production") {
   console.error("Refusing to seed with NODE_ENV=production.");
@@ -83,6 +88,17 @@ async function seedUsers(): Promise<void> {
   });
   for (const user of [...named, ...pool]) {
     await prisma.user.upsert({ where: { id: user.id }, create: user, update: user });
+  }
+}
+
+async function seedRulesAgreements(): Promise<void> {
+  for (const user of [...PEOPLE, ...pool]) {
+    const agreement = { rulesVersion: DROPS_RULES_VERSION, agreedAt: at(NOW) };
+    await prisma.dropRulesAgreement.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, ...agreement },
+      update: agreement,
+    });
   }
 }
 
@@ -257,6 +273,7 @@ async function seedRooms(): Promise<void> {
 
 async function main(): Promise<void> {
   await seedUsers();
+  await seedRulesAgreements();
   await seedEvents();
   await seedDrops();
   await seedUpTos();
