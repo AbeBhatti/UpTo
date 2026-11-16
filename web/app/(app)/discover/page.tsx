@@ -6,7 +6,16 @@ import { DiscoverView, type DiscoverWhen } from './DiscoverView';
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 const WINDOWS: EventWindow[] = ['now', 'today', 'week', 'quarter', 'past'];
-const FILTERS: NonNullable<ListEventsQuery['filter']>[] = ['all', 'free_food', 'active', 'career'];
+// Every SHOW ME filter the contract defines. Typed as a full record, so a
+// filter the contract adds (or this list forgets, as it once did Clubs) is a
+// compile error instead of a silent fall back to "all".
+const FILTERS = Object.keys({
+  all: true,
+  free_food: true,
+  clubs: true,
+  active: true,
+  career: true,
+} satisfies Record<NonNullable<ListEventsQuery['filter']>, true>) as NonNullable<ListEventsQuery['filter']>[];
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
