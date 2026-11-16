@@ -13,9 +13,15 @@
  *   6th send in a session → 429 rate_limited
  *
  * Sign in: identifier "abhi" (or abhi@example.com), any 6+ char password.
+ *
+ * Share page: /u/k3f9qz is the fixture Up-To; anything you publish in this
+ * tab also opens (client-side navigation keeps the mock's memory).
  */
 import type {
   ApiResponse,
+  CampusEvent,
+  PendingEventsResponse,
+  Report,
   AuthResponse,
   ConfirmCodeResponse,
   ErrorCode,
@@ -24,8 +30,8 @@ import type {
   SendCodeResponse,
   UpTo,
 } from "@upto/contracts";
-import { ME, PEOPLE } from "@upto/fixtures";
-import { UPTO_DESCRIPTION_MAX, toDescriptionField } from "./description";
+import { DROPS, EVENTS, ME, NOW, PEOPLE, UPTOS } from "@upto/fixtures";
+import { UPTO_DESCRIPTION_MAX, codePointLength, toDescriptionField } from "./description";
 
 export const MOCK_LIVE_CODE = "123456";
 export const MOCK_EXPIRED_CODE = "000000";
@@ -41,6 +47,70 @@ const state = {
 };
 
 const LIZ = PEOPLE[1]!;
+
+// ----- Admin ---------------------------------------------------------------
+// The fixture's one PENDING event plus two more, so approve and reject can
+// both be tried. Approving moves an event to APPROVED, which is what makes it
+// show in the student feed once Abhi's endpoint is real.
+const extraPending: CampusEvent[] = EVENTS.filter((e) => e.reviewStatus === "APPROVED")
+  .slice(0, 2)
+  .map((e, i) => ({
+    ...e,
+    id: `evt_pending_mock_${i + 1}`,
+    title: i === 0 ? "Open Mic Night (from flyer)" : "Resume Review Drop-in (from flyer)",
+    reviewStatus: "PENDING" as const,
+    goingCount: 0,
+    myStatus: null,
+    source: { id: "src_flyer", type: "FLYER", label: "Flyer upload" },
+  }));
+const adminState = {
+  events: new Map<string, CampusEvent>(
+    [...EVENTS.filter((e) => e.reviewStatus === "PENDING"), ...extraPending].map((e) => [e.id, e]),
+  ),
+};
+
+function mockReports(): Report[] {
+  const reporter = PEOPLE[2] ?? PEOPLE[0]!;
+  return [
+    {
+      id: "rep_mock_1",
+      targetType: "UPTO",
+      upTo: UPTOS[0]!,
+      reporter,
+      reason: "SPAM",
+      details: "Same post three times today.",
+      createdAt: NOW,
+      resolvedAt: null,
+    },
+    {
+      id: "rep_mock_2",
+      targetType: "DROP",
+      drop: DROPS[0]!,
+      reporter: PEOPLE[0]!,
+      reason: "OTHER",
+      details: null,
+      createdAt: new Date(Date.parse(NOW) - 3 * 3_600_000).toISOString(),
+      resolvedAt: null,
+    },
+    {
+      id: "rep_mock_3",
+      targetType: "MESSAGE",
+      message: {
+        id: "msg_mock_1",
+        roomId: "room_mock",
+        sender: PEOPLE[3] ?? PEOPLE[0]!,
+        content: "Not cool, keep it civil.",
+        revision: 0,
+        createdAt: new Date(Date.parse(NOW) - 26 * 3_600_000).toISOString(),
+      },
+      reporter,
+      reason: "ABOUT_A_PERSON",
+      details: "Aimed at someone in the group.",
+      createdAt: new Date(Date.parse(NOW) - 25 * 3_600_000).toISOString(),
+      resolvedAt: new Date(Date.parse(NOW) - 20 * 3_600_000).toISOString(),
+    },
+  ];
+}
 
 function ok<T>(data: T): ApiResponse<T> {
   return { ok: true, data };
@@ -199,7 +269,7 @@ function handle(key: RouteKey, path: string, body: Body): ApiResponse<unknown> {
       if (body.description != null && typeof body.description !== "string")
         return fail("invalid_request", "Description must be text.", "description");
       const description = toDescriptionField(body.description as string | null | undefined);
-      if (description && description.length > UPTO_DESCRIPTION_MAX)
+      if (description && codePointLength(description) > UPTO_DESCRIPTION_MAX)
         return fail("invalid_request", `Description is over ${UPTO_DESCRIPTION_MAX} characters.`, "description");
 
       const slug = newSlug();
@@ -223,6 +293,33 @@ function handle(key: RouteKey, path: string, body: Body): ApiResponse<unknown> {
       state.createdUpTos.set(slug, upTo);
       return ok(upTo);
     }
+
+    case "getSharedUpTo": {
+      // Same rule as Abhi's getSharedUpTo: unknown and unpublished are both 404.
+      const slug = decodeURIComponent(path.split("/").pop() ?? "");
+      const upTo = state.createdUpTos.get(slug) ?? UPTOS.find((u) => u.shareSlug === slug);
+      if (!upTo || !upTo.published) return fail("not_found", "Up-To not found");
+      return ok<UpTo>(upTo);
+    }
+
+    case "pendingEvents": {
+      const events = [...adminState.events.values()].filter((e) => e.reviewStatus === "PENDING");
+      return ok<PendingEventsResponse>({ events, total: events.length });
+    }
+
+    case "approveEvent":
+    case "rejectEvent": {
+      const id = decodeURIComponent(path.split("/").at(-2) ?? "");
+      const event = adminState.events.get(id);
+      if (!event) return fail("not_found", "Event not found");
+      if (event.reviewStatus !== "PENDING") return fail("invalid_request", "That event has already been reviewed.");
+      const updated: CampusEvent = { ...event, reviewStatus: key === "approveEvent" ? "APPROVED" : "REJECTED" };
+      adminState.events.set(id, updated);
+      return ok<CampusEvent>(updated);
+    }
+
+    case "listReports":
+      return ok<Report[]>(mockReports());
 
     default:
       return fail("server_error", `Mock has no handler for ${key} (${path}).`);
