@@ -94,11 +94,15 @@ accounts:
 | `liz`, `abe` | Students |
 | `seed01` … `seed30` | Placeholder students behind the going counts and votes |
 
-All named accounts sign in with the `SEED_PASSWORD` you chose. **Always set it:**
-without it the seed writes the accounts with no password. The team's shared
-development database was seeded with `SEED_PASSWORD=upto-dev-2026`. Treat that
-as a development-only password and reseed with a new one before anything is
-deployed publicly.
+All named accounts sign in with whatever `SEED_PASSWORD` was set when the
+database was seeded. **Always set it:** without it the seed writes the accounts
+with no password. For the team's shared development database, ask a team member
+for the value; it is deliberately not in this public repo.
+
+This setup path (`migrate deploy`, `generate`, the seed, then the backend) was
+run end to end on a new, empty PostgreSQL 14 database: both migrations applied,
+the seed produced its 226 rows, a second run changed nothing, and a seeded
+account signed in.
 
 ### 3. Run
 
@@ -213,9 +217,15 @@ control flow:
 - up to three live codes per account, any of which works;
 - using one spends all of them;
 - five wrong guesses shared across them, counted on the challenge row;
-- codes stored only as salted hashes (Node's built-in scrypt; PROJECT.md asks for
-  bcrypt, and swapping it in changes only `services/verification/hashing.ts`);
 - a single-use switch token bound to the account and the device.
+
+**One deviation from Lab 6: scrypt instead of bcrypt.** Lab 6's control flow
+graph calls `bcrypt.compare` to check a submitted code: at L1 (against each live
+code), at S1 (against the expired codes), and at D4 in V1. This build hashes
+codes with Node's built-in scrypt instead (`services/verification/hashing.ts`).
+The control flow is identical: the submitted code is compared against each
+stored hash, node for node. Only the hashing primitive differs. Codes are still
+stored only as salted, slow hashes. Swapping in bcrypt would change that one file.
 
 `backend/src/routes/studentVerification.route.test.ts` (46 tests) reaches every
 node, including S1 (an expired code answers 410 rather than "incorrect") and
