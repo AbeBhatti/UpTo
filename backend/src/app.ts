@@ -35,6 +35,22 @@ function routesServedBy(routers: Router[]): Set<string> {
   return definitions;
 }
 
+/** Hides the password in any database URL an error message carries. */
+function redact(text: string): string {
+  return text.replace(/(postgres(?:ql)?:\/\/[^:/\s]+:)[^@\s]+@/gi, "$1***@");
+}
+
+/**
+ * Every 500 is logged with what was asked and where it broke; the client
+ * still only sees the generic envelope. Without this a failure is a bare 500
+ * with an empty server log.
+ */
+function logServerError(error: unknown, request: express.Request): void {
+  const route = (request.route as { path?: string } | undefined)?.path;
+  const detail = error instanceof Error ? (error.stack ?? `${error.name}: ${error.message}`) : String(error);
+  console.error(redact(`[500] ${request.method} ${request.originalUrl}${route ? ` (route ${route})` : ""}\n${detail}`));
+}
+
 export function createApp(deps?: AppDeps): express.Express {
   const app = express();
   const dependencies = deps ?? createRealDeps();
@@ -80,7 +96,7 @@ export function createApp(deps?: AppDeps): express.Express {
     });
   });
 
-  const errorHandler: ErrorRequestHandler = (error, _request, response, _next) => {
+  const errorHandler: ErrorRequestHandler = (error, request, response, _next) => {
     const malformedJson =
       error instanceof SyntaxError &&
       typeof error === "object" &&
@@ -96,6 +112,7 @@ export function createApp(deps?: AppDeps): express.Express {
       return;
     }
 
+    logServerError(error, request);
     response.status(500).json({
       ok: false,
       error: { code: "server_error", message: "Internal server error" },
