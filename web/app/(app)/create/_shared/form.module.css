@@ -1,0 +1,295 @@
+/* Form primitives for Liz's screens. Tokens only — no hex, no raw pixels. */
+
+.panel {
+  width: 100%;
+  max-width: var(--up-size-readable-width);
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s24);
+  padding: var(--up-space-s32);
+  background: var(--up-surface-sheet);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-card-float);
+  font-family: var(--up-font-sans);
+  color: var(--up-text);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s8);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--up-type-title1-size);
+  font-weight: var(--up-type-title1-weight);
+  letter-spacing: var(--up-type-title1-tracking);
+}
+
+.lede {
+  margin: 0;
+  font-size: var(--up-type-body-size);
+  color: var(--up-text-secondary);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s16);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--up-size-readable-width) / 3)), 1fr));
+  gap: var(--up-space-s16);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s8);
+  min-width: 0;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--up-space-s8);
+}
+
+.label {
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
+  color: var(--up-text-secondary);
+}
+
+.meta {
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-footnote-weight);
+  color: var(--up-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.metaOver {
+  color: var(--up-danger);
+}
+
+.input,
+.textarea,
+.select {
+  width: 100%;
+  min-height: var(--up-size-tap-target);
+  padding: var(--up-space-s12) var(--up-space-s16);
+  background: var(--up-surface-inset);
+  color: var(--up-text);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-control);
+  font: inherit;
+  font-size: var(--up-type-body-size);
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.textarea {
+  min-height: calc(var(--up-size-cta) * 3);
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--up-text-tertiary);
+}
+
+.input:focus-visible,
+.textarea:focus-visible,
+.select:focus-visible {
+  border-color: var(--up-primary);
+  box-shadow: 0 0 0 var(--up-space-s4) var(--up-primary-ring);
+}
+
+.input[aria-invalid="true"],
+.textarea[aria-invalid="true"],
+.select[aria-invalid="true"] {
+  border-color: var(--up-primary-text);
+}
+
+.input:disabled,
+.textarea:disabled {
+  color: var(--up-text-tertiary);
+  background: var(--up-surface-field-empty);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--up-type-footnote-size);
+  color: var(--up-text-tertiary);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-footnote-weight);
+  color: var(--up-danger);
+}
+
+.banner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s4);
+  margin: 0;
+  padding: var(--up-space-s12) var(--up-space-s16);
+  border-radius: var(--up-radius-compact);
+  border: var(--up-stroke-hairline) solid var(--up-border-strong);
+  background: var(--up-surface-inset);
+  font-size: var(--up-type-body-size);
+}
+
+.bannerDanger {
+  border-color: var(--up-primary);
+  color: var(--up-danger);
+}
+
+.bannerSuccess {
+  color: var(--up-status-open-text);
+}
+
+.bannerTitle {
+  font-weight: var(--up-type-headline-weight);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--up-space-s12);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--up-space-s8);
+  min-height: var(--up-size-cta);
+  padding: 0 var(--up-space-s24);
+  border-radius: var(--up-radius-pill);
+  border: var(--up-stroke-hairline) solid transparent;
+  font: inherit;
+  font-size: var(--up-type-headline-size);
+  font-weight: var(--up-type-headline-weight);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--up-space-s4) var(--up-primary-ring);
+  border-color: var(--up-primary-text);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  background: var(--up-surface-inset);
+  color: var(--up-text-tertiary);
+  border-color: var(--up-border);
+}
+
+.primary {
+  background: var(--up-primary);
+  color: var(--up-on-primary);
+}
+
+.secondary {
+  background: transparent;
+  color: var(--up-text);
+  border-color: var(--up-border-strong);
+}
+
+.ghost {
+  min-height: var(--up-size-tap-target);
+  padding: 0 var(--up-space-s8);
+  background: transparent;
+  color: var(--up-primary-text);
+  font-size: var(--up-type-body-size);
+}
+
+.ghost:disabled {
+  background: transparent;
+  border-color: transparent;
+}
+
+.block {
+  width: 100%;
+}
+
+.switcher {
+  display: flex;
+  gap: var(--up-space-s4);
+  padding: var(--up-space-s4);
+  background: var(--up-surface-inset);
+  border-radius: var(--up-radius-pill);
+  width: fit-content;
+}
+
+.switcherOption {
+  min-height: var(--up-size-icon-button);
+  padding: 0 var(--up-space-s16);
+  border: none;
+  border-radius: var(--up-radius-pill);
+  background: transparent;
+  color: var(--up-text-secondary);
+  font: inherit;
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
+  cursor: pointer;
+}
+
+.switcherOption[aria-pressed="true"] {
+  background: var(--up-surface-sheet);
+  color: var(--up-text);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: var(--up-space-s8);
+  font-size: var(--up-type-body-size);
+  color: var(--up-text-secondary);
+  min-height: var(--up-size-tap-target);
+}
+
+.check input {
+  accent-color: var(--up-primary);
+  inline-size: var(--up-space-s16);
+  block-size: var(--up-space-s16);
+}
+
+.devNote {
+  margin: 0;
+  padding: var(--up-space-s8) var(--up-space-s12);
+  border: var(--up-stroke-hairline) dashed var(--up-border-strong);
+  border-radius: var(--up-radius-compact);
+  font-size: var(--up-type-footnote-size);
+  color: var(--up-text-tertiary);
+}
+
+.footer {
+  margin: 0;
+  font-size: var(--up-type-body-size);
+  color: var(--up-text-secondary);
+  text-align: center;
+}
+
+.link {
+  color: var(--up-primary-text);
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: var(--up-space-s4);
+}
