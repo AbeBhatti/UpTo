@@ -3,6 +3,7 @@
 import type { CampusEvent } from '@upto/contracts';
 import { useState } from 'react';
 import { JoinButton } from './JoinButton';
+import { useRsvp } from '@/lib/rsvp';
 import { SignupBadge } from './SignupBadge';
 import styles from './DetailPane.module.css';
 
@@ -62,7 +63,7 @@ export function DetailPane({
             </div>
           ) : null}
           <div className={styles.actions}>
-            {goingCount !== undefined ? <p className={styles.going}><strong>{goingCount}</strong> going</p> : null}
+            {goingCount !== undefined ? <GoingCount event={event} /> : null}
             <div className={styles.buttonRow}>
               {onSignup && event.signup.url ? (
                 <button className={styles.signup} type="button" onClick={onSignup}>↗ Sign up</button>
@@ -89,4 +90,10 @@ export function DetailPane({
       )}
     </aside>
   );
+}
+
+/** "N going", updated by an RSVP made from any Join button for this event. */
+function GoingCount({ event }: { event: CampusEvent }) {
+  const { goingCount } = useRsvp(event);
+  return <p className={styles.going}><strong>{goingCount}</strong> going</p>;
 }

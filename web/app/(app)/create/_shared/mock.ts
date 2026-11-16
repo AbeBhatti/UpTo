@@ -46,6 +46,8 @@ const state = {
   liveCodes: 0,
   attempts: 0,
   createdUpTos: new Map<string, UpTo>(),
+  /** RSVPs made in this tab, by event id, so a second tap and the detail pane agree. */
+  rsvps: new Map<string, CampusEvent>(),
 };
 
 const LIZ = PEOPLE[1]!;
@@ -379,6 +381,29 @@ function handle(key: RouteKey, path: string, body: Body): ApiResponse<unknown> {
       if (!room) return fail("not_found", "Room not found");
       chatState.rooms.set(id, { ...room, unreadCount: 0 }); // reading marks it read
       return ok<Message[]>(chatState.messages.get(id) ?? []);
+    }
+
+    case "rsvp": {
+      // POST /events/:id/rsvp, with the server's rules: a strict body, a
+      // case-insensitive status, unapproved events not found, goingCount
+      // following the viewer's GOING.
+      const bad = strict(body, ["status"]);
+      if (bad) return fail("invalid_request", bad);
+      const status = String(body.status ?? "").trim().toUpperCase();
+      if (status !== "GOING" && status !== "INTERESTED" && status !== "NOT_GOING")
+        return fail("invalid_request", "status must be GOING, INTERESTED or NOT_GOING", "status");
+      const id = decodeURIComponent(path.split("/").at(-2) ?? "");
+      const event = state.rsvps.get(id) ?? EVENTS.find((candidate) => candidate.id === id);
+      if (!event || event.reviewStatus !== "APPROVED") return fail("not_found", "Event not found");
+      const wasGoing = event.myStatus === "GOING";
+      const isGoing = status === "GOING";
+      const updated: CampusEvent = {
+        ...event,
+        myStatus: status,
+        goingCount: event.goingCount + (isGoing === wasGoing ? 0 : isGoing ? 1 : -1),
+      };
+      state.rsvps.set(id, updated);
+      return ok(updated);
     }
 
     case "sendMessage": {
