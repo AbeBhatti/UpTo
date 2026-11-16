@@ -1,7 +1,7 @@
 import type { EventWindow, ListEventsQuery } from '@upto/contracts';
 import { headers } from 'next/headers';
 import { getDiscoverData } from '@/lib/events';
-import { DiscoverView } from './DiscoverView';
+import { DiscoverView, type DiscoverWhen } from './DiscoverView';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -17,7 +17,9 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
   const requestHeaders = await headers();
   const requestedWindow = first(params.when);
   const requestedFilter = first(params.show);
-  const when = WINDOWS.includes(requestedWindow as EventWindow) ? requestedWindow as EventWindow : 'quarter';
+  // No (or an unknown) when means every live and upcoming event. The server's
+  // quarter window starts after the coming week, so it is not the default.
+  const when: DiscoverWhen = WINDOWS.includes(requestedWindow as EventWindow) ? requestedWindow as EventWindow : 'upcoming';
   const filter = FILTERS.includes(requestedFilter as NonNullable<ListEventsQuery['filter']>)
     ? requestedFilter as NonNullable<ListEventsQuery['filter']>
     : 'all';
@@ -27,7 +29,10 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Sea
   let nextCursor: string | null = null;
   let error = '';
   try {
-    const result = await getDiscoverData({ when, filter, limit: 50 }, { cookie: requestHeaders.get('cookie') ?? undefined });
+    const result = await getDiscoverData(
+      { when: when === 'upcoming' ? undefined : when, filter, limit: 50 },
+      { cookie: requestHeaders.get('cookie') ?? undefined },
+    );
     ({ events, now, counts, nextCursor } = result);
   } catch (caught) {
     error = caught instanceof Error ? caught.message : 'Could not load events.';

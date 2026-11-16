@@ -18,7 +18,8 @@ export interface DiscoverData {
 }
 
 export interface DiscoverQuery extends ListEventsQuery {
-  when: NonNullable<ListEventsQuery["when"]>;
+  /** Absent means everything live or upcoming: the API's GET /events with no when. */
+  when?: ListEventsQuery["when"];
   filter: NonNullable<ListEventsQuery["filter"]>;
 }
 
