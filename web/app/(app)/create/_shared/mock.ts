@@ -1,6 +1,6 @@
 /**
  * Fixture-backed stand-in for the API, used only while
- * NEXT_PUBLIC_USE_FIXTURES=true (or NEXT_PUBLIC_API_URL is unset). It returns exactly the contract
+ * NEXT_PUBLIC_USE_FIXTURES=true (see web/lib/dataSource.ts). It returns exactly the contract
  * envelope and the error codes Abe's and Abhi's endpoints will return, so the
  * screens are built against the real failure paths, not just the happy one.
  *

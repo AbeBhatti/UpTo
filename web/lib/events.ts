@@ -1,5 +1,6 @@
 import type { ApiResponse, CampusEvent, ListEventsQuery, ListEventsResponse } from "@upto/contracts";
 import { CAMPUS_RAIL, EVENTS, EVENT_COUNTS, NOW } from "@upto/fixtures";
+import { USE_FIXTURES, apiBaseUrl } from "./dataSource";
 
 /** Home's three sections, each exactly one of the server's event windows. */
 export interface HomeData {
@@ -88,7 +89,7 @@ export async function getDiscoverData(
   query: DiscoverQuery,
   options: DiscoverRequestOptions = {},
 ): Promise<DiscoverData> {
-  if (process.env.NEXT_PUBLIC_USE_FIXTURES === "true") {
+  if (USE_FIXTURES) {
     const events = EVENTS.filter((event) => event.reviewStatus === "APPROVED")
       .filter((event) => isInFixtureWindow(event, query.when, NOW))
       .filter((event) => matchesFixtureFilter(event, query.filter));
@@ -114,18 +115,13 @@ export async function getDiscoverData(
  * myStatus is theirs. Shared by Discover and Home.
  */
 async function fetchEvents(query: ListEventsQuery, options: DiscoverRequestOptions = {}): Promise<ListEventsResponse> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL is required when fixtures are disabled.");
-  }
-
   const params = new URLSearchParams();
   if (query.when) params.set("when", query.when);
   if (query.filter) params.set("filter", query.filter);
   params.set("limit", String(Math.min(query.limit ?? 50, 100)));
   if (options.cursor) params.set("cursor", options.cursor);
   const suffix = params.size ? `?${params.toString()}` : "";
-  const response = await fetch(`${apiUrl.replace(/\/$/, "")}/events${suffix}`, {
+  const response = await fetch(`${apiBaseUrl()}/events${suffix}`, {
     method: "GET",
     credentials: "include",
     ...(options.cookie ? { headers: { cookie: options.cookie } } : {}),
@@ -166,13 +162,13 @@ function fixtureSections(events: CampusEvent[], now: string) {
 }
 
 /**
- * Load Home's three sections. Fixture mode is the default and deliberately
+ * Load Home's three sections. Fixture mode (see dataSource.ts) deliberately
  * makes no request, so its server-computed labels stay paired with fixture
  * NOW. With the real API each section is the server's own window, the same
  * ones Discover's WHEN rail uses, so the two pages always agree.
  */
 export async function getHomeData(options: { cookie?: string } = {}): Promise<HomeData> {
-  if (process.env.NEXT_PUBLIC_USE_FIXTURES !== "false") {
+  if (USE_FIXTURES) {
     return { ...fixtureSections(EVENTS, NOW), now: NOW, campusRail: CAMPUS_RAIL };
   }
 

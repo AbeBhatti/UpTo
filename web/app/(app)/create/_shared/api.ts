@@ -3,20 +3,19 @@
  *
  * - Paths come from `ROUTES` in @upto/contracts, so a typo is a compile error.
  * - Every response is the contract envelope: { ok: true, data } | { ok: false, error }.
- * - With NEXT_PUBLIC_USE_FIXTURES=true (the .env.example default) or no
- *   NEXT_PUBLIC_API_URL, calls go to an in-memory mock driven by the fixtures
- *   (see ./mock.ts). Setting NEXT_PUBLIC_USE_FIXTURES=false switches to the real
- *   API — which is exactly step 4 of integration day.
+ * - With NEXT_PUBLIC_USE_FIXTURES=true, calls go to an in-memory mock driven
+ *   by the fixtures (see ./mock.ts). Anything else is the real API at
+ *   NEXT_PUBLIC_API_URL; the rule lives in web/lib/dataSource.ts, shared with
+ *   Home and Discover.
  *
  * If Edrick ships a shared API client in `components/`, swap the body of
  * `call()` for his and keep this signature so no screen has to change.
  */
 import { ROUTES, type ApiResponse, type RouteKey } from "@upto/contracts";
+import { USE_FIXTURES, apiBaseUrl } from "@/lib/dataSource";
 import { mockCall } from "./mock";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
-
-export const isMockApi = process.env.NEXT_PUBLIC_USE_FIXTURES === "true" || BASE_URL === "";
+export const isMockApi = USE_FIXTURES;
 
 export interface CallOptions {
   params?: Record<string, string>;
@@ -74,8 +73,16 @@ export async function call<T>(key: RouteKey, opts: CallOptions = {}): Promise<Ap
 
   if (isMockApi) return mockCall<T>(key, path, opts.body);
 
+  let base: string;
   try {
-    const res = await fetch(`${BASE_URL}${path}`, {
+    base = apiBaseUrl();
+  } catch (error) {
+    // Misconfigured build: say so, rather than blaming the connection.
+    return { ok: false, error: { code: "server_error", message: (error as Error).message } };
+  }
+
+  try {
+    const res = await fetch(`${base}${path}`, {
       method,
       credentials: "include",
       headers: {
