@@ -303,3 +303,91 @@ describe("POST /uptos/:id/rsvp", () => {
     assert.equal(db.tables.upToRsvp.length, 0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Polls: POST /uptos/:id/poll and /uptos/:id/poll/respond
+// ---------------------------------------------------------------------------
+
+/** The fixture's three-slot poll, as a create request. */
+const fixturePoll = {
+  question: UPTOS[0]!.poll!.question,
+  slots: UPTOS[0]!.poll!.slots.map((slot) => ({ label: slot.label, order: slot.order })),
+};
+
+describe("POST /uptos/:id/poll", () => {
+  test("[normal] the creator adds a poll; it comes back with zero counts and shows on the Up-To", async () => {
+    const upTo = await create();
+    const reply = await post(`/uptos/${upTo.id}/poll`, fixturePoll, LIZ.id);
+    assert.equal(reply.status, 201);
+    const poll = reply.body.data;
+    assert.deepEqual(Object.keys(poll).sort(), ["id", "question", "slots"]);
+    assert.equal(poll.question, "What time works for everyone?");
+    assert.deepEqual(
+      poll.slots.map((slot: any) => [slot.label, slot.order, slot.availableCount, slot.myResponse]),
+      [["6:00 p.m.", 0, 0, null], ["7:30 p.m.", 1, 0, null], ["9:00 p.m.", 2, 0, null]],
+    );
+    assert.deepEqual((await get(`/uptos/${upTo.id}`, ME.id)).body.data.poll, poll);
+  });
+
+  test("[edge] a slot without an order takes its list position; slots come back sorted by order", async () => {
+    const upTo = await create();
+    const poll = (await post(`/uptos/${upTo.id}/poll`, { question: "When?", slots: [{ label: "B", order: 5 }, { label: "A" }] }, LIZ.id)).body.data;
+    assert.deepEqual(poll.slots.map((slot: any) => [slot.label, slot.order]), [["A", 1], ["B", 5]]);
+  });
+
+  test("[invalid] one poll per Up-To; only the creator may add it; the Lab 5 limits apply", async () => {
+    const upTo = await create();
+    assert.equal((await post(`/uptos/${upTo.id}/poll`, fixturePoll, ME.id)).status, 403);
+    assert.equal((await post(`/uptos/${upTo.id}/poll`, fixturePoll, LIZ.id)).status, 201);
+    const second = await post(`/uptos/${upTo.id}/poll`, fixturePoll, LIZ.id);
+    assert.deepEqual(second.body.error, { code: "invalid_request", message: "This Up-To already has a poll." });
+    const one = await post(`/uptos/${(await create()).id}/poll`, { question: "When?", slots: [{ label: "A" }] }, LIZ.id);
+    assert.equal(one.body.error.message, "a poll needs 2 to 20 slots");
+    assert.equal((await post(`/uptos/upt_nope/poll`, fixturePoll, LIZ.id)).status, 404);
+    assert.equal((await post(`/uptos/${upTo.id}/poll`, fixturePoll, null)).status, 401);
+    assert.equal(db.tables.poll.length, 1);
+    assert.equal(db.tables.pollSlot.length, 3);
+  });
+});
+
+describe("POST /uptos/:id/poll/respond", () => {
+  async function withPoll() {
+    const upTo = await create();
+    const poll = (await post(`/uptos/${upTo.id}/poll`, fixturePoll, LIZ.id)).body.data;
+    const [six, sevenThirty] = poll.slots.map((slot: any) => slot.id);
+    return { upTo, six, sevenThirty };
+  }
+
+  test("[normal] availableCount counts everyone available; myResponse is the caller's own answer", async () => {
+    const { upTo, six, sevenThirty } = await withPoll();
+    await post(`/uptos/${upTo.id}/poll/respond`, { responses: [{ slotId: six, available: true }] }, ABE.id);
+    const mine = await post(`/uptos/${upTo.id}/poll/respond`, { responses: [{ slotId: six, available: true }, { slotId: sevenThirty, available: false }] }, ME.id);
+    assert.equal(mine.status, 200);
+    assert.deepEqual(
+      mine.body.data.slots.map((slot: any) => [slot.availableCount, slot.myResponse]),
+      [[2, true], [0, false], [0, null]],
+    );
+    // Someone else, and a signed-out visitor, see the counts but no answer of their own.
+    assert.deepEqual((await get(`/uptos/${upTo.id}`, LIZ.id)).body.data.poll.slots.map((slot: any) => slot.myResponse), [null, null, null]);
+    assert.deepEqual((await get(`/u/${upTo.shareSlug}`, null)).body.data.poll.slots.map((slot: any) => slot.availableCount), [2, 0, 0]);
+  });
+
+  test("[edge] answering again replaces the earlier answer, so a slot is never double counted", async () => {
+    const { upTo, six } = await withPoll();
+    await post(`/uptos/${upTo.id}/poll/respond`, { responses: [{ slotId: six, available: true }] });
+    const changed = await post(`/uptos/${upTo.id}/poll/respond`, { responses: [{ slotId: six, available: false }] });
+    assert.deepEqual([changed.body.data.slots[0].availableCount, changed.body.data.slots[0].myResponse], [0, false]);
+    assert.equal(db.tables.pollResponse.length, 1);
+  });
+
+  test("[invalid] a slot from another poll, an Up-To without a poll, and an empty list are rejected", async () => {
+    const { upTo } = await withPoll();
+    const other = await withPoll();
+    const stranger = await post(`/uptos/${upTo.id}/poll/respond`, { responses: [{ slotId: other.six, available: true }] });
+    assert.deepEqual(stranger.body.error, { code: "invalid_request", message: `slot ${other.six} is not in this poll`, field: "responses" });
+    const bare = await create();
+    assert.equal((await post(`/uptos/${bare.id}/poll/respond`, { responses: [{ slotId: "x", available: true }] })).status, 404);
+    assert.equal((await post(`/uptos/${upTo.id}/poll/respond`, { responses: [] })).body.error.message, "responses must have 1 to 20 entries");
+    assert.equal(db.tables.pollResponse.length, 0);
+  });
+});

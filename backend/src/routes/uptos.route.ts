@@ -1,12 +1,21 @@
 import { ROUTES } from "@upto/contracts";
 import { Router, type Request, type Response } from "express";
-import { createUpTo, getSharedUpTo, getUpTo, rsvpUpTo, type Reply, type UpTosDeps } from "../controllers/uptos.controller.js";
+import {
+  createPoll,
+  createUpTo,
+  getSharedUpTo,
+  getUpTo,
+  respondPoll,
+  rsvpUpTo,
+  type Reply,
+  type UpTosDeps,
+} from "../controllers/uptos.controller.js";
 
 /**
- * Express adapter for /uptos/* and the public /u/:slug share page. Reading
- * works signed out (myRsvp is then null); creating and RSVPing need a
- * session. Session handling is injected through `currentUserId`, as for
- * events and chat.
+ * Express adapter for /uptos/* (Up-Tos and their polls) and the public
+ * /u/:slug share page. Reading works signed out (myRsvp is then null);
+ * creating, RSVPing and polls need a session. Session handling is injected
+ * through `currentUserId`, as for events and chat.
  */
 export interface UpTosRouteDeps extends UpTosDeps {
   currentUserId: (request: Request) => string | null;
@@ -47,6 +56,16 @@ export function uptosRouter(deps: UpTosRouteDeps): Router {
   router.post(pathOf(ROUTES.rsvpUpTo), async (request, response) => {
     const userId = signedIn(request, response);
     if (userId) send(response, await rsvpUpTo(deps, userId, param(request, "id"), request.body));
+  });
+
+  router.post(pathOf(ROUTES.createPoll), async (request, response) => {
+    const userId = signedIn(request, response);
+    if (userId) send(response, await createPoll(deps, userId, param(request, "id"), request.body));
+  });
+
+  router.post(pathOf(ROUTES.respondPoll), async (request, response) => {
+    const userId = signedIn(request, response);
+    if (userId) send(response, await respondPoll(deps, userId, param(request, "id"), request.body));
   });
 
   return router;

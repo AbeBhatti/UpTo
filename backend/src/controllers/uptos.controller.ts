@@ -1,8 +1,9 @@
-import type { ApiResponse, ErrorCode, UpTo } from "@upto/contracts";
+import type { ApiResponse, ErrorCode, Poll, UpTo } from "@upto/contracts";
 import type { UpToRow, UpTosDb } from "../services/uptos/db.js";
-import { toUpTo } from "../services/uptos/present.js";
+import { loadPoll, toUpTo } from "../services/uptos/present.js";
 import { DEFAULT_SHARE_BASE_URL, newShareSlug } from "../services/uptos/slug.js";
 import { isUniqueClash } from "../services/verification/db.js";
+import { createPollSchema, respondPollSchema } from "../validators/poll.validator.js";
 import { createUpToSchema, upToRsvpSchema } from "../validators/upto.validator.js";
 
 /**
@@ -123,4 +124,59 @@ export async function rsvpUpTo(deps: UpTosDeps, userId: string, upToId: string, 
     update: { anonymous },
   });
   return ok(await toUpTo(deps.db, row, userId, deps.now(), shareBase(deps)));
+}
+
+// POST /uptos/:id/poll — the creator adds the one poll an Up-To may have.
+// Slots keep the order given; a slot with no `order` takes its list position.
+export async function createPoll(deps: UpTosDeps, userId: string, upToId: string, body: unknown): Promise<Reply<Poll>> {
+  const parsed = createPollSchema.safeParse(body);
+  if (!parsed.success) return invalid(parsed.error);
+
+  const row = await visibleUpTo(deps.db, upToId, userId);
+  if (row === null) return noUpTo();
+  if (row.creatorId !== userId) return fail(403, "forbidden", "Only the person who posted this Up-To can add a poll.");
+
+  const already = () => fail<Poll>(400, "invalid_request", "This Up-To already has a poll.");
+  if ((await deps.db.poll.findUnique({ where: { upToId } })) !== null) return already();
+
+  try {
+    await deps.db.$transaction(async (tx) => {
+      const poll = await tx.poll.create({ data: { upToId, question: parsed.data.question } });
+      for (const [index, slot] of parsed.data.slots.entries()) {
+        await tx.pollSlot.create({ data: { pollId: poll.id, label: slot.label, order: slot.order ?? index } });
+      }
+    });
+  } catch (error) {
+    // Two creates racing: Poll.upToId is unique, so the loser lands here.
+    if (isUniqueClash(error)) return already();
+    throw error;
+  }
+  return ok((await loadPoll(deps.db, upToId, userId))!, 201);
+}
+
+// POST /uptos/:id/poll/respond — the caller's availability per slot. Each
+// answer replaces the caller's previous one for that slot.
+export async function respondPoll(deps: UpTosDeps, userId: string, upToId: string, body: unknown): Promise<Reply<Poll>> {
+  const parsed = respondPollSchema.safeParse(body);
+  if (!parsed.success) return invalid(parsed.error);
+
+  const row = await visibleUpTo(deps.db, upToId, userId);
+  if (row === null) return noUpTo();
+  const poll = await deps.db.poll.findUnique({ where: { upToId } });
+  if (poll === null) return fail(404, "not_found", "This Up-To has no poll.");
+
+  const slotIds = new Set((await deps.db.pollSlot.findMany({ where: { pollId: poll.id } })).map((slot) => slot.id));
+  const stranger = parsed.data.responses.find((response) => !slotIds.has(response.slotId));
+  if (stranger) return fail(400, "invalid_request", `slot ${stranger.slotId} is not in this poll`, "responses");
+
+  await deps.db.$transaction(async (tx) => {
+    for (const { slotId, available } of parsed.data.responses) {
+      await tx.pollResponse.upsert({
+        where: { slotId_userId: { slotId, userId } },
+        create: { slotId, userId, available },
+        update: { available },
+      });
+    }
+  });
+  return ok((await loadPoll(deps.db, upToId, userId))!);
 }
