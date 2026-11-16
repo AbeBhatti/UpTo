@@ -78,32 +78,38 @@ export const description = z
     error: `description must be at most ${DESCRIPTION_MAX} characters`,
   });
 
+/**
+ * Messages are user-facing: Liz's form renders error.message under the field.
+ * title, location and scheduledAt use the same words as her fixture-mode mock,
+ * so switching the web app to the real API changes no copy. Messages pinned by
+ * lab-tests/UpTo.test.ts (description, report, RSVP) are left as they are.
+ */
 export const createUpToSchema = z
   .object(
     {
       title: z
-        .string({ error: "title must be a string" })
+        .string({ error: "Give it a title." })
         .trim()
-        .min(1, { error: "title must be 1 to 200 characters" })
-        .max(200, { error: "title must be 1 to 200 characters" }),
+        .min(1, { error: "Give it a title." })
+        .max(200, { error: "Keep the title to 200 characters." }),
       description,
-      scheduledAt: z.iso.datetime({ error: "scheduledAt must be an ISO date-time" }),
+      scheduledAt: z.iso.datetime({ error: "Pick a time." }),
       location: z
-        .string({ error: "location must be a string" })
+        .string({ error: "Say where it is." })
         .trim()
-        .min(1, { error: "location must be 1 to 200 characters" })
-        .max(200, { error: "location must be 1 to 200 characters" }),
+        .min(1, { error: "Say where it is." })
+        .max(200, { error: "Keep the location to 200 characters." }),
       contact: z
-        .string({ error: "contact must be a string" })
+        .string({ error: "Add an email address or a phone number." })
         .trim()
-        .max(254, { error: "contact must be at most 254 characters" })
+        .max(254, { error: "That contact is too long." })
         .refine((value) => classifyContact(value) !== null, {
-          error: "contact must be an email address or a phone number of 7 to 15 digits",
+          error: "Use an email address, or a phone number with 7 to 15 digits.",
         })
         .optional(),
       lat: latitude.optional(),
       lng: longitude.optional(),
-      publish: z.boolean({ error: "publish must be true or false" }).optional(),
+      publish: z.boolean({ error: "Choose whether to post it now." }).optional(),
     },
     { error: bodyError },
   )
@@ -116,7 +122,7 @@ export const submitReportSchema = z
         error: `reason must be one of ${REPORT_REASONS.join(", ")}`,
       }),
       details: z
-        .string({ error: "details must be a string" })
+        .string({ error: "Write the details as text." })
         .max(REPORT_DETAILS_MAX, {
           error: `details must be at most ${REPORT_DETAILS_MAX} characters`,
         })

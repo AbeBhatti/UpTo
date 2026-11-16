@@ -65,7 +65,7 @@ export const createDropSchema = z
       lat: latitude,
       lng: longitude,
       clientRef: z
-        .string({ error: "clientRef must be a string" })
+        .string({ error: "Something went wrong sending that. Try posting again." })
         .regex(/^[A-Za-z0-9_-]{8,64}$/, {
           error: "clientRef must be 8 to 64 letters, digits, _ or -",
         })
