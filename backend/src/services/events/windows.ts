@@ -1,17 +1,17 @@
 import type { CategoryKey, EventWindow, ListEventsQuery } from "@upto/contracts";
-import { campusDay, campusMidnight } from "./computed.js";
+import { ASSUMED_DURATION_MS, campusDay, campusMidnight } from "./computed.js";
 
 /**
  * The windows behind Home's sections and Discover's WHEN rail, as Prisma
  * where-clauses. now, today and week are disjoint, so each Home section is one
  * call and no event shows twice:
  *
- *   now      live: started, and not ended or no end time (same rule as isLiveNow)
+ *   now      live: started, and not at its effective end (same rule as isLiveNow)
  *   today    starts later today, Pacific
  *   week     starts tomorrow through six days out, the same range timeLabel
  *            names by weekday
  *   quarter  starts after the week, within ROLLING_QUARTER_DAYS of today
- *   past     has ended
+ *   past     has ended, an event with no end time at start + ASSUMED_DURATION_MS
  *   (none)   live or upcoming: everything not past
  */
 
@@ -24,7 +24,20 @@ export const ROLLING_QUARTER_DAYS = 70;
 type Filter = Record<string, unknown>;
 type Order = Record<string, "asc" | "desc">;
 
-const notEnded = (now: Date): Filter => ({ OR: [{ endsAt: null }, { endsAt: { gt: now } }] });
+/**
+ * An event with no end time ends at startsAt + ASSUMED_DURATION_MS, the same
+ * rule as isLiveNow and effectiveEnd in computed.ts. In a where-clause that is
+ * "no endsAt and started after now - ASSUMED_DURATION_MS".
+ */
+const assumedStartCutoff = (now: Date) => new Date(now.getTime() - ASSUMED_DURATION_MS);
+
+const notEnded = (now: Date): Filter => ({
+  OR: [{ endsAt: { gt: now } }, { AND: [{ endsAt: null }, { startsAt: { gt: assumedStartCutoff(now) } }] }],
+});
+
+const ended = (now: Date): Filter => ({
+  OR: [{ endsAt: { lte: now } }, { AND: [{ endsAt: null }, { startsAt: { lte: assumedStartCutoff(now) } }] }],
+});
 
 export function windowWhere(when: EventWindow | undefined, now: Date): Filter {
   const today = campusDay(now);
@@ -39,7 +52,7 @@ export function windowWhere(when: EventWindow | undefined, now: Date): Filter {
     case "quarter":
       return { startsAt: { gte: campusMidnight(today + 7), lt: campusMidnight(today + ROLLING_QUARTER_DAYS) } };
     case "past":
-      return { endsAt: { lte: now } };
+      return ended(now);
     case undefined:
       return notEnded(now);
   }

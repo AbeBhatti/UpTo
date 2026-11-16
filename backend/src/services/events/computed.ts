@@ -132,11 +132,19 @@ export interface EventTimes {
   endsAt: Date | null;
 }
 
-/** Started, and either not ended or no end time. */
+/**
+ * When an event is over: its endsAt, or, with no end time, startsAt plus
+ * ASSUMED_DURATION_MS. The same constant produces "Ends around 2:00 p.m.", so
+ * an event labelled as ending at 2:00 p.m. is not still live at 4:00 p.m. The
+ * `now` and `past` windows in windows.ts use the same rule.
+ */
+export function effectiveEnd(event: EventTimes): Date {
+  return event.endsAt ?? new Date(event.startsAt.getTime() + ASSUMED_DURATION_MS);
+}
+
+/** Started, and not yet at its effective end. */
 export function isLiveNow(event: EventTimes, now: Date): boolean {
-  const started = event.startsAt.getTime() <= now.getTime();
-  const ended = event.endsAt !== null && event.endsAt.getTime() <= now.getTime();
-  return started && !ended;
+  return event.startsAt.getTime() <= now.getTime() && now.getTime() < effectiveEnd(event).getTime();
 }
 
 export interface SignupFields {

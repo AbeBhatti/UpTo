@@ -14,8 +14,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { EVENTS, NOW } from "@upto/fixtures";
 import {
+  ASSUMED_DURATION_MS,
   campusMidnight,
   campusDay,
+  effectiveEnd,
   isLiveNow,
   signupFor,
   timeLabel,
@@ -55,6 +57,18 @@ describe("computed event fields beyond the fixtures", () => {
     assert.equal(isLiveNow(event("2026-11-15T21:00:00Z", "2026-11-15T22:00:00Z"), at("2026-11-15T21:00:00Z")), true);
     assert.equal(isLiveNow(event("2026-11-15T21:00:00Z", "2026-11-15T22:00:00Z"), at("2026-11-15T22:00:00Z")), false);
     assert.equal(isLiveNow(event("2026-11-15T21:00:01Z"), at("2026-11-15T21:00:00Z")), false);
+  });
+
+  it("[edge] no end time: live until start + the assumed duration its label names, then over", () => {
+    // Field hockey: starts 12:00 p.m., no end, labelled "Ends around 2:00 p.m.".
+    const hockey = event("2026-11-15T20:00:00Z");
+    assert.equal(ASSUMED_DURATION_MS, 2 * 60 * 60 * 1000);
+    assert.equal(timeLabel(hockey, at("2026-11-15T21:59:59Z")), "Ends around 2:00 p.m.");
+    assert.equal(isLiveNow(hockey, at("2026-11-15T21:59:59Z")), true);
+    assert.equal(effectiveEnd(hockey).toISOString(), "2026-11-15T22:00:00.000Z");
+    assert.equal(isLiveNow(hockey, at("2026-11-15T22:00:00Z")), false);
+    assert.equal(isLiveNow(hockey, at("2026-11-16T00:00:00Z")), false); // 4:00 p.m.
+    assert.equal(isLiveNow(hockey, at("2026-11-22T21:00:00Z")), false); // a week later
   });
 
   it("[edge] countdown rounds down and reaches minutes", () => {

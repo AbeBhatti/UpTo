@@ -26,7 +26,9 @@ import { eventsRouter } from "./events.route.js";
 // Harness
 // ---------------------------------------------------------------------------
 
-const now = () => new Date(NOW);
+/** The pinned clock. Tests may move it; beforeEach puts it back on NOW. */
+let clockAt = NOW;
+const now = () => new Date(clockAt);
 db.clock = now;
 
 const app = express();
@@ -83,6 +85,7 @@ function insertFixture(event: CampusEvent): void {
 }
 
 beforeEach(() => {
+  clockAt = NOW;
   db.reset();
   db.insert("user", { id: ME.id, username: ME.username, name: ME.name, isVerifiedStudent: true });
   db.insert("user", { id: ADMIN.id, username: ADMIN.username, name: ADMIN.name, isAdmin: true });
@@ -156,6 +159,26 @@ describe("GET /events matches fixtures/events.ts", () => {
     const past = await get("/events?when=past");
     assert.deepEqual(ids(past), ["evt_yesterday"]);
     assert.equal(past.body.data.events[0].timeLabel, "Nov 14, 2:00 p.m.");
+  });
+
+  test("no end time: field hockey is live at NOW, over two hours after it starts, and then in past", async () => {
+    // Starts 12:00 p.m. with no endsAt; its label says "Ends around 2:00 p.m.".
+    const atNow = await get("/events?when=now");
+    assert.ok(ids(atNow).includes("evt_field_hockey"));
+    const live = atNow.body.data.events.find((event: CampusEvent) => event.id === "evt_field_hockey");
+    assert.equal(live.isLiveNow, true);
+    assert.equal(live.timeLabel, "Ends around 2:00 p.m.");
+    assert.ok(!ids(await get("/events?when=past")).includes("evt_field_hockey"));
+
+    clockAt = "2026-11-15T22:00:00.000Z"; // 2:00 p.m., the end its label named
+    assert.ok(!ids(await get("/events?when=now")).includes("evt_field_hockey"));
+    assert.equal((await get("/events/evt_field_hockey")).body.data.isLiveNow, false);
+    assert.ok(ids(await get("/events?when=past")).includes("evt_field_hockey"));
+    assert.ok(!ids(await get("/events")).includes("evt_field_hockey"), "not in live-or-upcoming either");
+
+    clockAt = "2026-11-22T21:00:00.000Z"; // a week later it stays past, never live again
+    assert.ok(!ids(await get("/events?when=now")).includes("evt_field_hockey"));
+    assert.ok(ids(await get("/events?when=past")).includes("evt_field_hockey"));
   });
 });
 
