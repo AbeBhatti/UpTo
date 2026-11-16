@@ -61,3 +61,13 @@ export function reportBase(row: ReportRow, reporter: PublicUser) {
     resolvedAt: row.resolvedAt ? row.resolvedAt.toISOString() : null,
   };
 }
+
+/** What GET /admin/reports reads. */
+export interface ReportsReadDb {
+  report: {
+    findMany(args: {
+      where: Record<string, unknown>;
+      orderBy: Array<Record<string, "asc" | "desc">>;
+    }): Promise<ReportRow[]>;
+  };
+}
