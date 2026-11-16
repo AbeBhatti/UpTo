@@ -14,6 +14,10 @@
   white-space: nowrap;
 }
 
+.discover {
+  min-width: var(--up-size-time-tile-discover);
+}
+
 .inline {
   align-items: flex-start;
   min-width: 0;
