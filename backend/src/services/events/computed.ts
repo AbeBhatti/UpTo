@@ -20,9 +20,20 @@ const HOUR = 60 * 60 * 1000;
 const MINUTE = 60 * 1000;
 const DAY = 24 * HOUR;
 
-/** An event with no end time is assumed to run this long: "Ends around 2:00 p.m.". */
+/**
+ * Deliberate: an event with no end time is assumed to run 2 hours, so it reads
+ * "Ends around <start + 2h>". Neither the brief nor the contract states a
+ * duration; it is inferred from the one fixture without an end time
+ * (evt_field_hockey: starts 12:00, fixture says "Ends around 2:00 p.m."). Do
+ * not change it without changing fixtures/events.ts and eventLabels.test.ts.
+ */
 export const ASSUMED_DURATION_MS = 2 * HOUR;
-/** A live event ending sooner than this counts down ("2 hrs left"); later ones say "Until 5:00 p.m.". */
+/**
+ * Deliberate: a live event ending in under 3 hours counts down ("2 hrs left");
+ * one ending later says "Until 5:00 p.m.". The fixtures only pin the threshold
+ * between 2.5 hours (evt_pickleball counts down) and 4 hours (evt_n8n says
+ * "Until"), so any value in (2.5h, 4h] passes; 3 hours is a judgment call.
+ */
 export const COUNTDOWN_UNDER_MS = 3 * HOUR;
 
 // ---------------------------------------------------------------------------
@@ -147,6 +158,13 @@ export interface SignupFields {
  * CLOSED is checked before OPENS_LATER so contradictory dates can never read
  * as still to come. A deadline is closed at its instant; an opening is open
  * at its instant.
+ *
+ * Deliberate, and beyond both the brief's table and the fixtures:
+ * - "open now, no closesAt" has no row in the brief; it is OPEN with the label
+ *   "Sign-ups open", since OPEN with a null label would render nothing.
+ * - OPENS_LATER is only pinned for a weekday ("Fri 9 AM"). The other forms,
+ *   "Sign-ups open 9 AM" (today), "tomorrow 9 AM" and "Nov 30, 9 AM" (a week
+ *   or more out), follow timeLabel's day rules.
  */
 export function signupFor(fields: SignupFields, now: Date): Signup {
   const { signupUrl: url, signupOpensAt: opensAt, signupClosesAt: closesAt } = fields;
@@ -181,7 +199,13 @@ export function signupFor(fields: SignupFields, now: Date): Signup {
   };
 }
 
-/** "2 hrs left", "1 hr left", "45 min left". Rounded down, so it never overstates the time left. */
+/**
+ * "2 hrs left", "1 hr left", "45 min left".
+ *
+ * Deliberate: rounded DOWN, so 2.5 hours left is "2 hrs left" (evt_pickleball
+ * in the fixtures) and the label never overstates the time remaining. Rounding
+ * to nearest would say "3 hrs left" and break the fixture test.
+ */
 function countdown(ms: number): string {
   const hours = Math.floor(ms / HOUR);
   if (hours >= 2) return `${hours} hrs left`;

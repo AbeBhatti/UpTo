@@ -166,6 +166,22 @@ describe("GET /events — review status, viewers, filters and paging", () => {
     }
   });
 
+  test("[normal] only APPROVED events reach the feed: REJECTED is absent too, and neither is counted", async () => {
+    const before = (await get("/events", ADMIN.id)).body.data;
+    // A live career event, like evt_n8n, that an admin rejected.
+    insertFixture({ ...fixtures("evt_n8n")[0], id: "evt_rejected", reviewStatus: "REJECTED" });
+    for (const when of ["", "?when=now", "?when=today", "?when=week", "?when=quarter", "?when=past"]) {
+      const reply = await get(`/events${when}`, ADMIN.id);
+      assert.ok(!ids(reply).includes("evt_rejected"), when || "no window");
+    }
+    const after = (await get("/events", ADMIN.id)).body.data;
+    assert.deepEqual(after.counts, before.counts);
+    // The pending potluck is the only food event, so an unapproved event leaking
+    // into the counts would show here.
+    assert.equal(after.counts.free_food, 0);
+    assert.equal((await get("/events/evt_rejected")).status, 404);
+  });
+
   test("[normal] signed out, the feed still loads and myStatus is null everywhere", async () => {
     const reply = await get("/events?when=now", null);
     assert.equal(reply.status, 200);
