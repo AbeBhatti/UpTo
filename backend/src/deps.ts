@@ -34,13 +34,27 @@ export interface AppDeps {
 
 let prisma: PrismaClient | undefined;
 
+/**
+ * Prisma's default pool is CPUs x 2 + 1 connections (21 on a 10-core laptop),
+ * but Supabase's session pooler allows 15 clients in total, shared by every
+ * backend, seed and CLI pointed at the project. Over the limit, queries fail
+ * with EMAXCONNSESSION. So the pool is capped at DEFAULT_CONNECTION_LIMIT
+ * unless DATABASE_URL already sets connection_limit.
+ */
+export const DEFAULT_CONNECTION_LIMIT = 5;
+
+export function withConnectionLimit(url: string | undefined): string | undefined {
+  if (!url || /[?&]connection_limit=/.test(url)) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}connection_limit=${DEFAULT_CONNECTION_LIMIT}`;
+}
+
 function getPrisma(): PrismaClient {
   if (!prisma) {
     const require = createRequire(import.meta.url);
     const { PrismaClient: PrismaClientConstructor } = require("@prisma/client") as {
-      PrismaClient: new () => PrismaClient;
+      PrismaClient: new (options?: { datasourceUrl?: string }) => PrismaClient;
     };
-    prisma = new PrismaClientConstructor();
+    prisma = new PrismaClientConstructor({ datasourceUrl: withConnectionLimit(process.env.DATABASE_URL) });
   }
   return prisma;
 }
