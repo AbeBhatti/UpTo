@@ -9,7 +9,7 @@
  *   000000 ............ an expired code — 410 expired (Lab 6 S1 / RS)
  *   anything else ..... 422 incorrect; the 6th try is 410 attempts_exhausted
  *   aala@scu.edu ...... already held by @abhi — the 409 switch path
- *   classOf outside 2026–2031 → 422 class_of_out_of_range
+ *   classOf outside Abe's range (Fall 2026: 2027–2032) → 422 class_of_out_of_range
  *   6th send in a session → 429 rate_limited
  *
  * Sign in: identifier "abhi" (or abhi@example.com), any 6+ char password.
@@ -152,12 +152,17 @@ function handle(key: RouteKey, path: string, body: Body): ApiResponse<unknown> {
       state.attempts += 1;
 
       if (code === MOCK_EXPIRED_CODE) return fail("expired", "That code has expired.");
-      if (code !== MOCK_LIVE_CODE) return fail("incorrect", "Incorrect code.", "code");
+      if (code !== MOCK_LIVE_CODE) {
+        const left = Math.max(0, MAX_ATTEMPTS - state.attempts);
+        return fail("incorrect", `That code is incorrect. ${left} ${left === 1 ? "try" : "tries"} left.`, "code");
+      }
       state.attempts -= 1; // N6: a match refunds the slot
 
       const classOf = Number(body.classOf);
-      if (!Number.isInteger(classOf) || classOf < 2026 || classOf > 2031)
-        return fail("class_of_out_of_range", "Class year out of range.", "classOf");
+      const now = new Date();
+      const min = now.getUTCMonth() >= 6 ? now.getUTCFullYear() + 1 : now.getUTCFullYear();
+      if (!Number.isInteger(classOf) || classOf < min || classOf > min + 5)
+        return fail("class_of_out_of_range", `Class year must be between ${min} and ${min + 5}.`, "classOf");
 
       const email = String(body.email).toLowerCase();
       state.liveCodes = 0; // using one spends all of them
