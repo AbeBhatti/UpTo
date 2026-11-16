@@ -3,10 +3,27 @@
   flex-direction: column;
   gap: var(--up-space-s12);
   min-width: 0;
+  min-height: 0;
   padding: var(--up-space-s24);
   border: var(--up-stroke-hairline) solid var(--up-border);
   border-radius: var(--up-radius-card);
   background: var(--up-surface-sheet);
+}
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s8);
+  padding: var(--up-space-s24);
+  border-radius: var(--up-radius-card-float);
+  background: var(--up-primary-ring);
+}
+
+.live {
+  margin: 0;
+  color: var(--up-primary-text);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
 }
 
 .heading {
@@ -26,7 +43,7 @@
 }
 
 .time {
-  margin-bottom: var(--up-space-s8);
+  margin: 0;
   color: var(--up-text-secondary);
   font-size: var(--up-type-footnote-size);
   font-weight: var(--up-type-footnote-weight);
@@ -48,4 +65,160 @@
 
 .organizer {
   color: var(--up-text-tertiary);
+}
+
+.discoverOrganizer {
+  color: var(--up-primary-text);
+  font-weight: var(--up-type-headline-weight);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s12);
+  padding-block: var(--up-space-s8);
+  border-bottom: var(--up-stroke-hairline) solid var(--up-border);
+}
+
+.infoRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s4);
+  margin: 0;
+  color: var(--up-text);
+  font-size: var(--up-type-body-size);
+  font-weight: var(--up-type-headline-weight);
+  line-height: 1.4;
+}
+
+.infoRow span {
+  color: var(--up-text-secondary);
+  font-weight: var(--up-type-body-weight);
+}
+
+.directions {
+  color: var(--up-primary-text);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
+}
+
+.directions:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+}
+
+.descriptionBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--up-space-s8);
+}
+
+.description {
+  color: var(--up-text-secondary);
+}
+
+.clampedDescription {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+.expanded {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+.more,
+.back {
+  min-height: var(--up-size-tap-target);
+  padding-inline: var(--up-space-s8);
+  border: 0;
+  background: transparent;
+  color: var(--up-text);
+  font: inherit;
+  font-weight: var(--up-type-headline-weight);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.more:focus-visible,
+.back:focus-visible,
+.signup:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s12);
+  margin-top: auto;
+  padding-top: var(--up-space-s16);
+  border-top: var(--up-stroke-hairline) solid var(--up-border);
+}
+
+.going {
+  margin: 0;
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-body-size);
+}
+
+.going strong {
+  color: var(--up-text);
+  font-size: var(--up-type-title1-size);
+}
+
+.buttonRow {
+  display: flex;
+  align-items: center;
+  gap: var(--up-space-s8);
+}
+
+.signup {
+  display: flex;
+  min-width: 0;
+  min-height: var(--up-size-cta);
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--up-space-s8);
+  padding-inline: var(--up-space-s12);
+  border: 0;
+  border-radius: var(--up-radius-pill);
+  background: var(--up-primary);
+  color: var(--up-on-primary);
+  font: inherit;
+  font-weight: var(--up-type-headline-weight);
+  cursor: pointer;
+}
+
+.join {
+  display: flex;
+  min-width: 0;
+  min-height: var(--up-size-cta);
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--up-space-s8);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-pill);
+  color: var(--up-text);
+  font-size: var(--up-type-body-size);
+  font-weight: var(--up-type-headline-weight);
+}
+
+.join button {
+  flex-basis: var(--up-size-tap-target);
+  min-width: var(--up-size-tap-target);
+  border: 0;
+}
+
+.mobile {
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: var(--up-surface);
 }

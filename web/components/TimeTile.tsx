@@ -5,6 +5,8 @@ interface TimeTileProps {
   event: Pick<CampusEvent, 'timeLabel'>;
   /** A card puts the time on one line above its title. */
   inline?: boolean;
+  /** Discover rows get the wider time column without changing Home. */
+  discover?: boolean;
 }
 
 /**
@@ -22,11 +24,12 @@ export function splitTimeLabel(label: string): [string, string] {
   return [label, ''];
 }
 
-export function TimeTile({ event, inline = false }: TimeTileProps) {
-  if (inline) return <span className={`${styles.tile} ${styles.inline}`}>{event.timeLabel}</span>;
+export function TimeTile({ event, inline = false, discover = false }: TimeTileProps) {
+  const tileClass = `${styles.tile} ${discover ? styles.discover : ''}`;
+  if (inline) return <span className={`${tileClass} ${styles.inline}`}>{event.timeLabel}</span>;
   const [top, bottom] = splitTimeLabel(event.timeLabel);
   return (
-    <span className={styles.tile}>
+    <span className={tileClass}>
       <span className={styles.line}>{top}</span>
       {bottom ? <span className={styles.line}>{bottom}</span> : null}
     </span>
