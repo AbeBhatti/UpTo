@@ -151,6 +151,14 @@
   outline-offset: var(--up-space-s4);
 }
 
+/* Back to the list only matters on phones, where the pane covers the list.
+   48rem matches Discover's phone breakpoint (discover.module.css). */
+@media (min-width: 48.0625rem) {
+  .back {
+    display: none;
+  }
+}
+
 .actions {
   display: flex;
   flex-direction: column;
