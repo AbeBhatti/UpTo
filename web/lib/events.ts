@@ -121,11 +121,19 @@ async function fetchEvents(query: ListEventsQuery, options: DiscoverRequestOptio
   params.set("limit", String(Math.min(query.limit ?? 50, 100)));
   if (options.cursor) params.set("cursor", options.cursor);
   const suffix = params.size ? `?${params.toString()}` : "";
-  const response = await fetch(`${apiBaseUrl()}/events${suffix}`, {
-    method: "GET",
-    credentials: "include",
-    ...(options.cookie ? { headers: { cookie: options.cookie } } : {}),
-  });
+  const url = `${apiBaseUrl()}/events${suffix}`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "GET",
+      credentials: "include",
+      ...(options.cookie ? { headers: { cookie: options.cookie } } : {}),
+    });
+  } catch (error) {
+    // The API is down or unreachable: log the real cause, show something readable.
+    console.error(`GET ${url} failed:`, error);
+    throw new Error("Couldn't reach UpTo. Try again in a moment.");
+  }
 
   const result = (await response.json()) as ApiResponse<ListEventsResponse>;
   if (!result.ok) {

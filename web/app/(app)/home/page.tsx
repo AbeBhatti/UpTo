@@ -72,9 +72,29 @@ export default async function HomePage() {
   const requestHeaders = await headers();
   // Each section is one of the server's event windows (now, today, week), the
   // same ones Discover's WHEN rail uses, in the server's order.
-  const { rightNow, laterToday, thisWeek, now, campusRail } = await getHomeData({
-    cookie: requestHeaders.get('cookie') ?? undefined,
-  });
+  let data: Awaited<ReturnType<typeof getHomeData>>;
+  try {
+    data = await getHomeData({ cookie: requestHeaders.get('cookie') ?? undefined });
+  } catch (caught) {
+    // As Discover does: say what went wrong instead of a server error page.
+    const message = caught instanceof Error ? caught.message : 'Could not load events.';
+    const today = new Date().toISOString();
+    return (
+      <div className={styles.page}>
+        <div className={styles.content}>
+          <header className={styles.pageHeader}>
+            <p className={styles.quarter}>Week {weekNumber(today)} · Fall Quarter</p>
+            <h1>{dateHeadline(today)}</h1>
+          </header>
+          <div className={styles.error} role="alert">
+            <span>{message}</span>
+            <a href="/home">Try again</a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  const { rightNow, laterToday, thisWeek, now, campusRail } = data;
 
   const leftWeek = thisWeek.filter((_, index) => index % 2 === 0);
   const rightWeek = thisWeek.filter((_, index) => index % 2 === 1);

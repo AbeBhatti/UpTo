@@ -206,3 +206,35 @@
     padding-bottom: var(--up-space-s16);
   }
 }
+
+/* Shown instead of the sections when events cannot load, as Discover does. */
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--up-space-s12);
+  padding: var(--up-space-s12);
+  border: var(--up-stroke-hairline) solid var(--up-danger);
+  border-radius: var(--up-radius-card);
+  color: var(--up-danger);
+  font-size: var(--up-type-body-size);
+}
+
+.error a {
+  display: inline-grid;
+  place-items: center;
+  min-height: var(--up-size-tap-target);
+  padding-inline: var(--up-space-s16);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-pill);
+  background: var(--up-surface-subtle);
+  color: var(--up-text);
+  font-weight: var(--up-type-headline-weight);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.error a:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+}
