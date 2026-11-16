@@ -1,0 +1,35 @@
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--up-space-s16);
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  color: var(--up-text);
+  font-size: var(--up-type-title1-size);
+  font-weight: var(--up-type-title1-weight);
+  letter-spacing: var(--up-type-title1-tracking);
+  line-height: 1.2;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--up-size-tap-target);
+  color: var(--up-primary-text);
+  font-size: var(--up-type-body-size);
+  font-weight: var(--up-type-headline-weight);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.action:hover {
+  text-decoration: underline;
+}
+
+.action:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+}

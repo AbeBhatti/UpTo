@@ -1,0 +1,30 @@
+.row {
+  display: grid;
+  grid-template-columns: calc(var(--up-size-time-tile-discover) + var(--up-space-s16)) minmax(0, 1fr) var(--up-size-tap-target);
+  align-items: center;
+  gap: var(--up-space-s12);
+  min-width: 0;
+  padding-block: var(--up-space-s8);
+}
+
+.details {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  color: var(--up-text);
+  font-size: var(--up-type-headline-size);
+  font-weight: var(--up-type-headline-weight);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.location {
+  margin: 0;
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-body-size);
+  font-weight: var(--up-type-body-weight);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}

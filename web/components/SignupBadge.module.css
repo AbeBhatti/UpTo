@@ -1,0 +1,7 @@
+.label {
+  display: inline-block;
+  color: var(--up-text);
+  font-size: var(--up-type-body-size);
+  font-weight: var(--up-type-headline-weight);
+  line-height: 1.35;
+}

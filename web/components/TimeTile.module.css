@@ -1,0 +1,22 @@
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: var(--up-size-time-tile-home);
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-footnote-weight);
+  line-height: 1.25;
+  text-align: right;
+}
+
+.line {
+  white-space: nowrap;
+}
+
+.inline {
+  align-items: flex-start;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
+}
