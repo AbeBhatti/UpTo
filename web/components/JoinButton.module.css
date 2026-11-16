@@ -1,0 +1,28 @@
+.button {
+  display: inline-grid;
+  flex: 0 0 var(--up-size-tap-target);
+  place-items: center;
+  width: var(--up-size-tap-target);
+  min-width: var(--up-size-tap-target);
+  height: var(--up-size-tap-target);
+  padding: 0;
+  border: var(--up-stroke-hairline) solid var(--up-border-strong);
+  border-radius: var(--up-radius-pill);
+  background: transparent;
+  color: var(--up-primary-text);
+  font: inherit;
+  font-size: var(--up-type-title1-size);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.button:hover,
+.button[aria-pressed='true'] {
+  border-color: var(--up-primary-text);
+  background: var(--up-primary-ring);
+}
+
+.button:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+}

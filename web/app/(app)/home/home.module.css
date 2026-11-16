@@ -1,0 +1,208 @@
+.page {
+  min-height: 100%;
+  padding: var(--up-space-s32);
+}
+
+.content {
+  width: 100%;
+  margin-inline: auto;
+}
+
+.pageHeader {
+  margin-bottom: var(--up-space-section-gap);
+}
+
+.quarter {
+  margin: 0 0 var(--up-space-s8);
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-footnote-weight);
+}
+
+.pageHeader h1 {
+  margin: 0;
+  font-size: var(--up-type-display-hero-size);
+  font-weight: var(--up-type-display-hero-weight);
+  letter-spacing: var(--up-type-display-hero-tracking);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 0.9fr);
+  gap: var(--up-space-section-gap);
+  align-items: start;
+}
+
+.mainColumn {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--up-space-section-gap);
+}
+
+.section {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--up-space-s16);
+}
+
+.liveGrid,
+.laterGrid,
+.weekGrid {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--up-space-s16);
+  row-gap: var(--up-space-s12);
+}
+
+.laterCard {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--up-space-s12);
+  padding: var(--up-space-s16);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-card);
+  background: var(--up-surface-subtle);
+}
+
+.laterCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--up-space-s4);
+}
+
+.laterCopy h3 {
+  margin: 0;
+  font-size: var(--up-type-headline-size);
+  font-weight: var(--up-type-headline-weight);
+}
+
+.location {
+  margin: 0;
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-body-size);
+  font-weight: var(--up-type-body-weight);
+}
+
+.weekGrid {
+  column-gap: var(--up-space-s24);
+}
+
+.weekGrid > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--up-space-s8);
+}
+
+.campusRail {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--up-space-s16);
+}
+
+.campusList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--up-space-s8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.campusLink {
+  display: grid;
+  min-height: var(--up-size-tap-target);
+  grid-template-columns: var(--up-size-tap-target) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--up-space-s12);
+  padding: var(--up-space-s8);
+  border-radius: var(--up-radius-card);
+  color: inherit;
+  text-decoration: none;
+}
+
+.campusLink:hover {
+  background: var(--up-surface-subtle);
+}
+
+.iconTile {
+  display: grid;
+  width: var(--up-size-tap-target);
+  height: var(--up-size-tap-target);
+  place-items: center;
+  border-radius: var(--up-radius-tile-sm);
+  background: var(--up-primary);
+  color: var(--up-on-primary);
+}
+
+.iconTile svg {
+  width: var(--up-size-icon-tile);
+  height: var(--up-size-icon-tile);
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: var(--up-stroke-hairline);
+}
+
+.campusCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--up-space-s4);
+}
+
+.campusTitle {
+  overflow: hidden;
+  font-size: var(--up-type-headline-size);
+  font-weight: var(--up-type-headline-weight);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.campusSubtitle {
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-footnote-weight);
+}
+
+.campusStatus {
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-body-size);
+  font-weight: var(--up-type-headline-weight);
+  white-space: nowrap;
+}
+
+.chevron {
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-title1-size);
+}
+
+@media (max-width: 48rem) {
+  .page {
+    padding: var(--up-space-s16);
+  }
+
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--up-space-section-gap);
+  }
+
+  .liveGrid,
+  .laterGrid,
+  .weekGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .campusRail {
+    padding-bottom: var(--up-space-s16);
+  }
+}
