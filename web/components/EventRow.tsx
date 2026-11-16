@@ -7,15 +7,13 @@ import styles from './EventRow.module.css';
 interface EventRowProps {
   event: CampusEvent;
   selected?: boolean;
-  live?: boolean;
   organizerLine?: string;
   signupText?: string;
   organizerStyle?: React.CSSProperties;
   onSelect?: () => void;
 }
 
-export function EventRow({ event, selected = false, live, organizerLine, signupText, organizerStyle, onSelect }: EventRowProps) {
-  const timeLabel = live ? 'NOW' : event.timeLabel;
+export function EventRow({ event, selected = false, organizerLine, signupText, organizerStyle, onSelect }: EventRowProps) {
   const discoverMetadata = organizerLine !== undefined || signupText !== undefined;
   const details = (
     <span className={styles.details}>
@@ -41,7 +39,7 @@ export function EventRow({ event, selected = false, live, organizerLine, signupT
           aria-current={selected ? 'true' : undefined}
           aria-label={`View details for ${event.title}`}
         >
-          <TimeTile event={{ timeLabel }} discover />
+          <TimeTile event={event} discover />
           {details}
         </button>
       ) : (

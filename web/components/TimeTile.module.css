@@ -24,3 +24,10 @@
   text-align: left;
   white-space: nowrap;
 }
+
+/* The live badge: what Discover's screenshot shows above the time. */
+.now {
+  color: var(--up-text);
+  font-weight: var(--up-type-headline-weight);
+  letter-spacing: 0.04em;
+}

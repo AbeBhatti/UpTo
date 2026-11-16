@@ -15,8 +15,19 @@ export function newShareSlug(): string {
   return Array.from({ length: SLUG_LENGTH }, () => SLUG_ALPHABET[randomInt(SLUG_ALPHABET.length)]).join("");
 }
 
-/** Where share links point. The fixtures and the mock use https://up-to.co. */
+/** Where share links point in production. The fixtures and the mock use it too. */
 export const DEFAULT_SHARE_BASE_URL = "https://up-to.co";
+
+/**
+ * The origin share links should use: the web app's own origin, WEB_ORIGIN
+ * (the same variable the backend's CORS reads), since /u/:slug is a page of
+ * the web app. Locally that is http://localhost:3000, so a copied link opens;
+ * unset, links point at production.
+ */
+export function shareBaseUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string {
+  const origin = env.WEB_ORIGIN?.trim();
+  return origin ? origin : DEFAULT_SHARE_BASE_URL;
+}
 
 export function shareUrlFor(baseUrl: string, slug: string): string {
   return `${baseUrl.replace(/\/+$/, "")}/u/${slug}`;

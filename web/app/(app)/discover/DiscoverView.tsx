@@ -261,7 +261,6 @@ export function DiscoverView({ events: initialEvents, now: initialNow, counts: i
                       <EventRow
                         key={event.id}
                         event={event}
-                        live={event.isLiveNow}
                         selected={selectedEvent?.id === event.id}
                         organizerLine={organizerLine}
                         signupText={event.signup.state === 'NOT_REQUIRED' ? '' : event.signup.label ?? ''}
