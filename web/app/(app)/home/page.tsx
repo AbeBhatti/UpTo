@@ -41,18 +41,6 @@ function dateHeadline(value: string) {
   }).format(new Date(value));
 }
 
-function localWeekday(value: string) {
-  return new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, weekday: 'short' }).format(new Date(value));
-}
-
-function dayOrdinal(value: string) {
-  return Date.parse(`${pacificDateKey(value)}T00:00:00Z`) / (24 * 60 * 60 * 1000);
-}
-
-function sortByStart(a: CampusEvent, b: CampusEvent) {
-  return Date.parse(a.startsAt) - Date.parse(b.startsAt);
-}
-
 function CampusIcon({ name }: { name: string }) {
   const paths: Record<string, React.ReactNode> = {
     dining: <><path d="M5 3v7" /><path d="M8 3v7" /><path d="M5 7h3" /><path d="M6.5 10v11" /><path d="M17 3v18" /><path d="M17 3c3 2 3 6 0 8" /></>,
@@ -82,27 +70,11 @@ export default async function HomePage() {
   // Reading the request makes Home render per request, as Discover does,
   // instead of a build-time snapshot; the cookie carries the viewer's session.
   const requestHeaders = await headers();
-  const { events, now, campusRail } = await getHomeData({ cookie: requestHeaders.get('cookie') ?? undefined });
-  const todayKey = pacificDateKey(now);
-  const todayWeekday = localWeekday(now);
-  const weekdayIndex = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(todayWeekday);
-  const daysLeftInWeek = 6 - weekdayIndex;
-  const approved = events.filter((event) => event.reviewStatus === 'APPROVED');
-
-  // Home follows the contract's event windows: isLiveNow defines Right Now;
-  // the remaining approved events are separated by Pacific calendar date,
-  // and This week includes later days in the current Sunday-to-Saturday week.
-  const rightNow = approved.filter((event) => event.isLiveNow).sort(sortByStart);
-  const laterToday = approved
-    .filter((event) => !event.isLiveNow && pacificDateKey(event.startsAt) === todayKey && Date.parse(event.startsAt) > Date.parse(now))
-    .sort(sortByStart);
-  const thisWeek = approved
-    .filter((event) => {
-      if (event.isLiveNow) return false;
-      const daysAhead = dayOrdinal(event.startsAt) - dayOrdinal(now);
-      return daysAhead > 0 && daysAhead <= daysLeftInWeek;
-    })
-    .sort(sortByStart);
+  // Each section is one of the server's event windows (now, today, week), the
+  // same ones Discover's WHEN rail uses, in the server's order.
+  const { rightNow, laterToday, thisWeek, now, campusRail } = await getHomeData({
+    cookie: requestHeaders.get('cookie') ?? undefined,
+  });
 
   const leftWeek = thisWeek.filter((_, index) => index % 2 === 0);
   const rightWeek = thisWeek.filter((_, index) => index % 2 === 1);

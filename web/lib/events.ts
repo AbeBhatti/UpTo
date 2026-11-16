@@ -1,8 +1,11 @@
 import type { ApiResponse, CampusEvent, ListEventsQuery, ListEventsResponse } from "@upto/contracts";
 import { CAMPUS_RAIL, EVENTS, EVENT_COUNTS, NOW } from "@upto/fixtures";
 
+/** Home's three sections, each exactly one of the server's event windows. */
 export interface HomeData {
-  events: CampusEvent[];
+  rightNow: CampusEvent[];
+  laterToday: CampusEvent[];
+  thisWeek: CampusEvent[];
   now: string;
   campusRail: typeof CAMPUS_RAIL;
 }
@@ -96,6 +99,20 @@ export async function getDiscoverData(
     };
   }
 
+  const data = await fetchEvents(query, options);
+  return {
+    events: data.events,
+    now: new Date().toISOString(),
+    counts: data.counts,
+    nextCursor: data.nextCursor,
+  };
+}
+
+/**
+ * GET /events from the real API, forwarding the viewer's session cookie so
+ * myStatus is theirs. Shared by Discover and Home.
+ */
+async function fetchEvents(query: ListEventsQuery, options: DiscoverRequestOptions = {}): Promise<ListEventsResponse> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!apiUrl) {
     throw new Error("NEXT_PUBLIC_API_URL is required when fixtures are disabled.");
@@ -120,51 +137,51 @@ export async function getDiscoverData(
   if (!response.ok) {
     throw new Error(`Could not load events: API returned HTTP ${response.status}.`);
   }
+  return result.data;
+}
 
+/**
+ * The fixture events split the way the server's windows split them (see
+ * backend/src/services/events/windows.ts), so fixture mode and the real API
+ * put the same event in the same section:
+ *
+ *   now    live (isLiveNow, which the server computed), soonest end first
+ *   today  not live, starting later today, Pacific
+ *   week   starting tomorrow through six days out
+ */
+function fixtureSections(events: CampusEvent[], now: string) {
+  const approved = events.filter((event) => event.reviewStatus === "APPROVED");
+  const byStart = (a: CampusEvent, b: CampusEvent) => Date.parse(a.startsAt) - Date.parse(b.startsAt) || a.id.localeCompare(b.id);
+  const byEnd = (a: CampusEvent, b: CampusEvent) =>
+    (a.endsAt === null ? Infinity : Date.parse(a.endsAt)) - (b.endsAt === null ? Infinity : Date.parse(b.endsAt)) || byStart(a, b);
+  const daysAhead = (event: CampusEvent) => dayOrdinal(event.startsAt) - dayOrdinal(now);
   return {
-    events: result.data.events,
-    now: new Date().toISOString(),
-    counts: result.data.counts,
-    nextCursor: result.data.nextCursor,
+    rightNow: approved.filter((event) => event.isLiveNow).sort(byEnd),
+    laterToday: approved
+      .filter((event) => !event.isLiveNow && daysAhead(event) === 0 && Date.parse(event.startsAt) > Date.parse(now))
+      .sort(byStart),
+    thisWeek: approved.filter((event) => daysAhead(event) >= 1 && daysAhead(event) <= 6).sort(byStart),
   };
 }
 
 /**
- * Load the event data Home needs. Fixture mode is the default and deliberately
- * makes no request, so its server-computed labels stay paired with fixture NOW.
+ * Load Home's three sections. Fixture mode is the default and deliberately
+ * makes no request, so its server-computed labels stay paired with fixture
+ * NOW. With the real API each section is the server's own window, the same
+ * ones Discover's WHEN rail uses, so the two pages always agree.
  */
 export async function getHomeData(options: { cookie?: string } = {}): Promise<HomeData> {
   if (process.env.NEXT_PUBLIC_USE_FIXTURES !== "false") {
-    return {
-      events: EVENTS,
-      now: NOW,
-      campusRail: CAMPUS_RAIL,
-    };
+    return { ...fixtureSections(EVENTS, NOW), now: NOW, campusRail: CAMPUS_RAIL };
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl) {
-    throw new Error("NEXT_PUBLIC_API_URL is required when fixtures are disabled.");
-  }
-
-  // Forward the viewer's session, as Discover does, so myStatus is theirs.
-  const response = await fetch(`${apiUrl.replace(/\/$/, "")}/events`, {
-    method: "GET",
-    credentials: "include",
-    ...(options.cookie ? { headers: { cookie: options.cookie } } : {}),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Could not load events: API returned HTTP ${response.status}.`);
-  }
-
-  const result = (await response.json()) as ApiResponse<ListEventsResponse>;
-  if (!result.ok) {
-    throw new Error(`Could not load events: ${result.error.message}`);
-  }
-
+  const [rightNow, laterToday, thisWeek] = await Promise.all(
+    (["now", "today", "week"] as const).map((when) => fetchEvents({ when, limit: 100 }, options)),
+  );
   return {
-    events: result.data.events,
+    rightNow: rightNow.events,
+    laterToday: laterToday.events,
+    thisWeek: thisWeek.events,
     now: new Date().toISOString(),
     campusRail: CAMPUS_RAIL,
   };
