@@ -85,7 +85,8 @@
   --up-size-icon-tile: 34px;
   --up-size-avatar-header: 44px;
   --up-size-cta: 52px;
-  --up-size-time-tile-home: 46px;
+  /* Fits the widest top line the server sends, "Ends around"; at 46px it spilled past the 16px gutter on phones. */
+  --up-size-time-tile-home: 58px;
   --up-size-time-tile-discover: 58px;
   --up-size-readable-width: 700px;
   --up-stroke-hairline: 1px;
