@@ -3,7 +3,8 @@ import { Attendance } from "../services/events/attendance.js";
 import { eventInclude, type EventsDb } from "../services/events/db.js";
 import { toCampusEvent } from "../services/events/present.js";
 import { SHOW_ME, windowOrder, windowWhere } from "../services/events/windows.js";
-import { listEventsQuerySchema, rsvpSchema, rsvpSyncSchema } from "../validators/campusEventRsvp.validator.js";
+import { listEventsQuerySchema } from "../validators/campusEvent.validator.js";
+import { rsvpSchema, rsvpSyncSchema } from "../validators/campusEventRsvp.validator.js";
 
 /**
  * Campus events: the feed, one event, and RSVPs. Every function takes the
