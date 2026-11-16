@@ -1,0 +1,12 @@
+/* The sign-in and sign-up screens sit outside the app shell: one form, centred. */
+.screen {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--up-space-gutter);
+}
+
+.screen > * {
+  width: 100%;
+  max-width: var(--up-size-readable-width);
+}
