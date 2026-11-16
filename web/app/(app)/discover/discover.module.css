@@ -146,6 +146,52 @@
   font-size: var(--up-type-body-size);
 }
 
+.loading {
+  opacity: 0.55;
+  transition: opacity 160ms ease;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--up-space-s12);
+  padding: var(--up-space-s12);
+  border: var(--up-stroke-hairline) solid var(--up-danger);
+  border-radius: var(--up-radius-card);
+  color: var(--up-danger);
+  font-size: var(--up-type-body-size);
+}
+
+.error button,
+.showMore {
+  min-height: var(--up-size-tap-target);
+  padding-inline: var(--up-space-s16);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-pill);
+  background: var(--up-surface-subtle);
+  color: var(--up-text);
+  font: inherit;
+  font-weight: var(--up-type-headline-weight);
+  cursor: pointer;
+}
+
+.showMore {
+  align-self: center;
+  margin-top: var(--up-space-s16);
+}
+
+.error button:focus-visible,
+.showMore:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+}
+
+.error button:disabled,
+.showMore:disabled {
+  cursor: progress;
+}
+
 .detailColumn {
   align-self: start;
   position: sticky;

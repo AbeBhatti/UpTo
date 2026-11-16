@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CampusEvent, EventWindow, ListEventsQuery } from '@upto/contracts';
 import { DetailPane, EventRow, SectionHeader } from '@/components';
+import { getDiscoverData } from '@/lib/events';
 import styles from './discover.module.css';
 
 type ShowFilter = NonNullable<ListEventsQuery['filter']>;
@@ -12,6 +13,9 @@ interface DiscoverViewProps {
   events: CampusEvent[];
   now: string;
   counts: Record<string, number>;
+  total: number;
+  nextCursor: string | null;
+  error: string;
   when: EventWindow;
   filter: ShowFilter;
   initialEventId: string;
@@ -69,15 +73,9 @@ function campusDay(value: string, now: string) {
   if (offset === 0) return { lead: 'Today', weekday, key: dateKey(value) };
   if (offset === 1) return { lead: 'Tomorrow', weekday, key: dateKey(value) };
   const label = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Los_Angeles', weekday: 'long', month: 'long', day: 'numeric',
+    timeZone: 'America/Los_Angeles', weekday: 'long', month: 'short', day: 'numeric',
   }).format(date);
   return { lead: label, weekday: '', key: dateKey(value) };
-}
-
-function displayTime(value: string) {
-  return new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit',
-  }).format(new Date(value)).replace(' AM', ' a.m.').replace(' PM', ' p.m.');
 }
 
 function detailDate(value: string) {
@@ -86,24 +84,39 @@ function detailDate(value: string) {
   }).format(new Date(value));
 }
 
-function timeRange(event: CampusEvent) {
-  const start = displayTime(event.startsAt);
-  return event.endsAt ? `${start} to ${displayTime(event.endsAt)}` : start;
-}
-
 function queryHref(when: EventWindow, filter: ShowFilter, eventId?: string) {
   const query = new URLSearchParams({ when, show: filter });
   if (eventId) query.set('event', eventId);
   return `/discover?${query.toString()}`;
 }
 
-export function DiscoverView({ events, now, counts, when, filter, initialEventId }: DiscoverViewProps) {
+export function DiscoverView({ events: initialEvents, now: initialNow, counts: initialCounts, total: initialTotal, nextCursor: initialNextCursor, error: initialError, when, filter, initialEventId }: DiscoverViewProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const [selectedId, setSelectedId] = useState(initialEventId);
   const [mobileDetailOpen, setMobileDetailOpen] = useState(false);
+  const [events, setEvents] = useState(initialEvents);
+  const [now, setNow] = useState(initialNow);
+  const [counts, setCounts] = useState(initialCounts);
+  const [total, setTotal] = useState(initialTotal);
+  const [nextCursor, setNextCursor] = useState(initialNextCursor);
+  const [error, setError] = useState(initialError);
+  const [loadingMore, setLoadingMore] = useState(false);
   const selectedEvent = events.find((event) => event.id === selectedId) ?? events[0];
 
-  useEffect(() => setSelectedId(initialEventId), [initialEventId]);
+  useEffect(() => {
+    if (initialError) {
+      setError(initialError);
+      return;
+    }
+    setEvents(initialEvents);
+    setNow(initialNow);
+    setCounts(initialCounts);
+    setTotal(initialTotal);
+    setNextCursor(initialNextCursor);
+    setError('');
+    setSelectedId(initialEventId);
+  }, [initialCounts, initialError, initialEvents, initialEventId, initialNextCursor, initialNow, initialTotal]);
   useEffect(() => {
     const currentEvent = typeof window === 'undefined' ? null : new URLSearchParams(window.location.search).get('event');
     if (initialEventId && currentEvent !== initialEventId) {
@@ -131,7 +144,8 @@ export function DiscoverView({ events, now, counts, when, filter, initialEventId
 
   function changeFilters(nextWhen: EventWindow, nextFilter: ShowFilter) {
     setMobileDetailOpen(false);
-    router.push(queryHref(nextWhen, nextFilter), { scroll: false });
+    setError('');
+    startTransition(() => router.push(queryHref(nextWhen, nextFilter), { scroll: false }));
   }
 
   function backToList() {
@@ -139,7 +153,37 @@ export function DiscoverView({ events, now, counts, when, filter, initialEventId
     router.replace(queryHref(when, filter, selectedEvent?.id), { scroll: false });
   }
 
-  const summary = `${WINDOW_OPTIONS.find((item) => item.value === when)?.label ?? 'This quarter'} · ${events.length} events`;
+  async function showMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    setError('');
+    try {
+      const page = await getDiscoverData({ when, filter, limit: 50 }, { cursor: nextCursor });
+      setEvents((current) => [...current, ...page.events]);
+      setNextCursor(page.nextCursor);
+      setNow(page.now);
+      setCounts(page.counts);
+      setTotal(page.counts.all ?? 0);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Could not load events.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  function tryAgain() {
+    setError('');
+    startTransition(() => router.refresh());
+  }
+
+  const summary = `${WINDOW_OPTIONS.find((item) => item.value === when)?.label ?? 'This quarter'} · ${total} events`;
+  const directionsUrl = selectedEvent
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+      selectedEvent.lat !== null && selectedEvent.lng !== null
+        ? `${selectedEvent.lat},${selectedEvent.lng}`
+        : `${selectedEvent.location} Santa Clara University`,
+    )}`
+    : undefined;
 
   return (
     <div className={`${styles.page} ${mobileDetailOpen ? styles.detailOpen : ''}`}>
@@ -187,6 +231,8 @@ export function DiscoverView({ events, now, counts, when, filter, initialEventId
           <SectionHeader title="Discover" />
           <p className={styles.summary}>{summary}</p>
         </header>
+        <div className={isPending || loadingMore ? styles.loading : ''} aria-busy={isPending || loadingMore}>
+        {error ? <div className={styles.error} role="alert"><span>{error}</span><button type="button" onClick={tryAgain}>Try again</button></div> : null}
         {events.length ? (
           <div className={styles.groups}>
             {groups.map((group) => (
@@ -219,9 +265,11 @@ export function DiscoverView({ events, now, counts, when, filter, initialEventId
               </section>
             ))}
           </div>
-        ) : (
+        ) : !error ? (
           <p className={styles.empty}>No events in this view.</p>
-        )}
+        ) : null}
+        {nextCursor ? <button className={styles.showMore} type="button" disabled={loadingMore || isPending} onClick={() => void showMore()}>{loadingMore ? 'Loading events…' : 'Show more events'}</button> : null}
+        </div>
       </main>
 
       {selectedEvent ? (
@@ -230,8 +278,9 @@ export function DiscoverView({ events, now, counts, when, filter, initialEventId
             event={selectedEvent}
             live={selectedEvent.isLiveNow}
             dateLabel={detailDate(selectedEvent.startsAt)}
-            timeRange={timeRange(selectedEvent)}
+            timeRange={selectedEvent.timeLabel}
             sourceLabel={selectedEvent.source?.label ?? ''}
+            directionsUrl={directionsUrl}
             description={selectedEvent.description ?? ''}
             goingCount={selectedEvent.goingCount}
             onSignup={selectedEvent.signup.url ? () => window.open(selectedEvent.signup.url!, '_blank', 'noopener,noreferrer') : undefined}

@@ -12,6 +12,7 @@ interface DetailPaneProps {
   dateLabel?: string;
   timeRange?: string;
   sourceLabel?: string;
+  directionsUrl?: string;
   description?: string;
   goingCount?: number;
   onSignup?: () => void;
@@ -25,6 +26,7 @@ export function DetailPane({
   dateLabel,
   timeRange,
   sourceLabel,
+  directionsUrl,
   description,
   goingCount,
   onSignup,
@@ -47,8 +49,8 @@ export function DetailPane({
           </div>
           <div className={styles.info}>
             {event.organizer ? <p className={styles.discoverOrganizer}>{event.organizer}</p> : null}
-            {dateLabel ? <p className={styles.infoRow}>{dateLabel}{timeRange ? <span>{timeRange}</span> : null}</p> : null}
-            <p className={styles.infoRow}>{event.location}</p>
+            {dateLabel ? <p className={styles.infoRow}>{dateLabel}</p> : null}
+            <p className={styles.infoRow}>{event.location}{directionsUrl ? <a className={styles.directions} href={directionsUrl} target="_blank" rel="noopener">Directions</a> : null}</p>
             {sourceLabel ? <p className={styles.infoRow}>{sourceLabel}</p> : null}
           </div>
           {shownDescription ? (

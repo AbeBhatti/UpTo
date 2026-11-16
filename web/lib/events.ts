@@ -11,6 +11,17 @@ export interface DiscoverData {
   events: CampusEvent[];
   now: string;
   counts: Record<string, number>;
+  nextCursor: string | null;
+}
+
+export interface DiscoverQuery extends ListEventsQuery {
+  when: NonNullable<ListEventsQuery["when"]>;
+  filter: NonNullable<ListEventsQuery["filter"]>;
+}
+
+export interface DiscoverRequestOptions {
+  cursor?: string | null;
+  cookie?: string;
 }
 
 const PACIFIC_TIME_ZONE = "America/Los_Angeles";
@@ -69,12 +80,20 @@ function matchesFixtureFilter(event: CampusEvent, filter: ListEventsQuery["filte
  * Load Discover's list and filter counts. Fixture mode intentionally makes no
  * request and keeps all time calculations paired with the fixture clock.
  */
-export async function getDiscoverData(query: ListEventsQuery): Promise<DiscoverData> {
-  if (process.env.NEXT_PUBLIC_USE_FIXTURES !== "false") {
+export async function getDiscoverData(
+  query: DiscoverQuery,
+  options: DiscoverRequestOptions = {},
+): Promise<DiscoverData> {
+  if (process.env.NEXT_PUBLIC_USE_FIXTURES === "true") {
     const events = EVENTS.filter((event) => event.reviewStatus === "APPROVED")
       .filter((event) => isInFixtureWindow(event, query.when, NOW))
       .filter((event) => matchesFixtureFilter(event, query.filter));
-    return { events, now: NOW, counts: EVENT_COUNTS };
+    return {
+      events,
+      now: NOW,
+      counts: EVENT_COUNTS,
+      nextCursor: null,
+    };
   }
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -85,25 +104,28 @@ export async function getDiscoverData(query: ListEventsQuery): Promise<DiscoverD
   const params = new URLSearchParams();
   if (query.when) params.set("when", query.when);
   if (query.filter) params.set("filter", query.filter);
+  params.set("limit", String(Math.min(query.limit ?? 50, 100)));
+  if (options.cursor) params.set("cursor", options.cursor);
   const suffix = params.size ? `?${params.toString()}` : "";
   const response = await fetch(`${apiUrl.replace(/\/$/, "")}/events${suffix}`, {
     method: "GET",
     credentials: "include",
+    ...(options.cookie ? { headers: { cookie: options.cookie } } : {}),
   });
-
-  if (!response.ok) {
-    throw new Error(`Could not load events: API returned HTTP ${response.status}.`);
-  }
 
   const result = (await response.json()) as ApiResponse<ListEventsResponse>;
   if (!result.ok) {
-    throw new Error(`Could not load events: ${result.error.message}`);
+    throw new Error(result.error.message);
+  }
+  if (!response.ok) {
+    throw new Error(`Could not load events: API returned HTTP ${response.status}.`);
   }
 
   return {
     events: result.data.events,
     now: new Date().toISOString(),
     counts: result.data.counts,
+    nextCursor: result.data.nextCursor,
   };
 }
 

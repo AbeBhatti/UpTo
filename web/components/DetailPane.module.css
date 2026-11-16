@@ -96,6 +96,17 @@
   font-weight: var(--up-type-body-weight);
 }
 
+.directions {
+  color: var(--up-primary-text);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
+}
+
+.directions:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+}
+
 .descriptionBlock {
   display: flex;
   flex-direction: column;
