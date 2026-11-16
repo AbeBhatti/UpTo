@@ -8,10 +8,11 @@
  * It is a separate class only because FakeDb's table list is closed and the
  * file is Abe's. If FakeDb grows a way to register tables, this can fold in.
  *
- * Covers exactly what the events controller and Attendance.setStatus use:
- * findMany (where, orderBy with nulls last on asc as Postgres does, skip,
- * take, include or select), findUnique, count, update, upsert on the
- * userId_campusEventId compound key, and $transaction.
+ * Covers exactly what the events controller, Attendance.setStatus, the admin
+ * review and the LiveWhale importer use: findMany (where, orderBy with nulls
+ * last on asc as Postgres does, skip, take, include or select), findUnique
+ * (including the userId_campusEventId and sourceId_externalId compound
+ * keys), findFirst, count, create, update, upsert, and $transaction.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -78,7 +79,7 @@ function sortRows(rows: Row[], orderBy: Row[] | undefined): Row[] {
 }
 
 function compoundKey(where: Where): Where {
-  return where.userId_campusEventId ?? where;
+  return where.userId_campusEventId ?? where.sourceId_externalId ?? where;
 }
 
 export class EventsFakeDb {
@@ -161,7 +162,18 @@ export class EventsFakeDb {
         const page = args.take === undefined ? sorted.slice(start) : sorted.slice(start, start + args.take);
         return page.map((r) => db.present(table, r, args));
       },
+      findFirst: async (args: { where?: Where; orderBy?: Row[]; select?: Row } = {}) => {
+        const row = sortRows(rows().filter((r) => matches(r, args.where)), args.orderBy)[0];
+        return row ? db.present(table, row, args) : null;
+      },
       count: async ({ where }: { where?: Where } = {}) => rows().filter((r) => matches(r, where)).length,
+      create: async ({ data }: { data: Row }) => {
+        if (table === "campusEvent" && data.sourceId != null && data.externalId != null) {
+          const clash = rows().some((r) => r.sourceId === data.sourceId && r.externalId === data.externalId);
+          if (clash) throw new UniqueConstraintError(table, "sourceId_externalId");
+        }
+        return structuredClone(db.insert(table, data));
+      },
       update: async ({ where, data }: { where: Where; data: Row }) => {
         const row = rows().find((r) => matches(r, where));
         if (!row) throw new RecordNotFoundError(table);

@@ -49,7 +49,7 @@ export const createPollSchema = z
   .object(
     {
       question: z
-        .string({ error: "question must be a string" })
+        .string({ error: "Ask a question." })
         .trim()
         .min(1, { error: `question must be 1 to ${POLL_QUESTION_MAX} characters` })
         .max(POLL_QUESTION_MAX, {
@@ -68,9 +68,9 @@ const pollResponse = z
   .object(
     {
       slotId: z
-        .string({ error: "slotId must be a string" })
-        .min(1, { error: "slotId must not be empty" })
-        .max(ID_MAX, { error: `slotId must be at most ${ID_MAX} characters` }),
+        .string({ error: "Pick a time from this poll." })
+        .min(1, { error: "Pick a time from this poll." })
+        .max(ID_MAX, { error: "Pick a time from this poll." }),
       available: z.boolean({ error: "available must be true or false" }),
     },
     { error: (iss) => (iss.code === "invalid_type" ? "each response must be an object" : bodyError(iss)) },

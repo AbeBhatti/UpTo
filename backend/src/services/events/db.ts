@@ -85,7 +85,7 @@ export interface EventsDb {
     findUnique(args: { where: { id: string }; include: EventInclude }): Promise<EventWithDetails | null>;
     findMany(args: { where: Filter; select: { id: true } }): Promise<Array<{ id: string }>>;
     count(args: { where: Filter }): Promise<number>;
-    update(args: { where: { id: string }; data: { goingCount: number } }): Promise<CampusEventRow>;
+    update(args: { where: { id: string }; data: { goingCount: number } | { reviewStatus: ReviewStatusValue } }): Promise<CampusEventRow>;
   };
   attendance: {
     upsert(args: {

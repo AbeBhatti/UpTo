@@ -205,11 +205,16 @@ describe("POST /uptos", () => {
     assert.equal(owned.body.error.message, "unexpected field: creatorId");
 
     const time = await post("/uptos", { ...studySession, scheduledAt: "next friday" }, LIZ.id);
-    assert.deepEqual(time.body.error, { code: "invalid_request", message: "scheduledAt must be an ISO date-time", field: "scheduledAt" });
+    assert.deepEqual(time.body.error, { code: "invalid_request", message: "Pick a time.", field: "scheduledAt" });
 
+    // The same words as Liz's fixture-mode mock, which her form renders under the field.
     const { title: _, ...untitled } = studySession;
     const title = await post("/uptos", untitled, LIZ.id);
-    assert.equal(title.body.error.field, "title");
+    assert.deepEqual(title.body.error, { code: "invalid_request", message: "Give it a title.", field: "title" });
+    const blank = await post("/uptos", { ...studySession, location: "   " }, LIZ.id);
+    assert.deepEqual(blank.body.error, { code: "invalid_request", message: "Say where it is.", field: "location" });
+    const long = await post("/uptos", { ...studySession, title: "t".repeat(201) }, LIZ.id);
+    assert.equal(long.body.error.message, "Keep the title to 200 characters.");
     assert.equal(db.tables.upTo.length, 0);
   });
 });
