@@ -1,0 +1,233 @@
+.page {
+  position: relative;
+  display: grid;
+  height: 100%;
+  min-height: 32rem;
+  grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr);
+  gap: var(--up-space-s16);
+  padding: var(--up-space-s16);
+}
+
+/* ---- Search panel ---- */
+
+.panel {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--up-space-s12);
+  overflow-y: auto;
+  padding: var(--up-space-s16);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-card-float);
+  background: var(--up-surface-sheet);
+}
+
+.heading {
+  margin: 0;
+  color: var(--up-text);
+  font-size: var(--up-type-headline-size);
+  font-weight: var(--up-type-headline-weight);
+}
+
+.search {
+  width: 100%;
+  min-height: var(--up-size-tap-target);
+  padding: 0 var(--up-space-s16);
+  border: var(--up-stroke-hairline) solid var(--up-border);
+  border-radius: var(--up-radius-control);
+  background: var(--up-surface-inset);
+  color: var(--up-text);
+  font: inherit;
+  font-size: var(--up-type-body-size);
+}
+
+.search:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+}
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--up-space-s8);
+  margin-top: var(--up-space-s8);
+}
+
+.sectionLabel {
+  margin: 0;
+  overflow: hidden;
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.count,
+.footnote {
+  margin: 0;
+  color: var(--up-text-tertiary);
+  font-size: var(--up-type-footnote-size);
+}
+
+.showAll {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--up-primary-text);
+  font: inherit;
+  font-size: var(--up-type-footnote-size);
+  cursor: pointer;
+}
+
+.back {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--up-primary-text);
+  font: inherit;
+  font-size: var(--up-type-body-size);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.notice {
+  margin: 0;
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-body-size);
+}
+
+/* ---- Map ---- */
+
+.canvas {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--up-radius-card-float);
+  background: var(--up-surface-map);
+}
+
+.mapBox {
+  position: absolute;
+  inset: 0;
+}
+
+.mapProblem {
+  position: absolute;
+  inset: auto var(--up-space-s16) var(--up-space-s16);
+  margin: 0;
+  padding: var(--up-space-s12) var(--up-space-s16);
+  border-radius: var(--up-radius-card);
+  background: var(--up-surface-sheet);
+  color: var(--up-text-secondary);
+  font-size: var(--up-type-body-size);
+}
+
+/* Pins are HTML markers; MapLibre positions them by transform. */
+.pin {
+  display: flex;
+  max-width: 9rem;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--up-space-s4);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--up-text);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.pinDot {
+  display: grid;
+  width: var(--up-size-icon-tile);
+  height: var(--up-size-icon-tile);
+  place-items: center;
+  border: 2px solid var(--up-surface);
+  border-radius: var(--up-radius-tile-sm);
+  background: var(--pin-accent);
+  color: var(--up-on-primary);
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.5);
+  transition: transform 120ms ease;
+}
+
+.pinDot[data-live='true'] {
+  border-color: var(--up-live);
+}
+
+.pinLabel,
+.pinMore {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--up-type-footnote-size);
+  font-weight: var(--up-type-headline-weight);
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.9);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.pinMore {
+  color: var(--up-text-secondary);
+  font-weight: var(--up-type-footnote-weight);
+}
+
+.pin:hover .pinDot,
+.pin[data-selected='true'] .pinDot {
+  transform: scale(1.15);
+}
+
+.pin[data-selected='true'] {
+  z-index: 1;
+}
+
+.pin[data-selected='true'] .pinDot {
+  border-color: var(--up-primary-text);
+}
+
+.pin:focus-visible {
+  outline: var(--up-stroke-hairline) solid var(--up-primary-text);
+  outline-offset: var(--up-space-s4);
+  border-radius: var(--up-radius-compact);
+}
+
+/* Zoomed out, only the hovered or chosen pin shows its title. */
+.canvas[data-labels='false'] .pin:not(:hover):not([data-selected='true']) .pinLabel,
+.canvas[data-labels='false'] .pin:not(:hover):not([data-selected='true']) .pinMore {
+  display: none;
+}
+
+/* Phones: the map on top, the panel under it. */
+@media (max-width: 48rem) {
+  .page {
+    height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 55vh auto;
+    padding: var(--up-space-s8);
+  }
+
+  .canvas {
+    grid-row: 1;
+  }
+
+  .panel {
+    grid-row: 2;
+    overflow: visible;
+  }
+}
